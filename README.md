@@ -47,7 +47,7 @@ After answering, Launchblocks generates a `launchblocks/` directory with everyth
 
 ```
 launchblocks/
-  LaunchBlocks_implementation.md                              # Master specification for your app
+  LaunchBlocks_implementation.md              # Master specification for your app
   launchblocks.config.yaml                   # Project configuration
   CLAUDE.md / .cursorrules / AGENTS.md / GEMINI.md  # AI tool context file
   specs/
@@ -176,7 +176,7 @@ src/
     config-writer.ts       # Writes launchblocks.config.yaml
     spec-renderer.ts       # Renders module spec markdown files
     sql-renderer.ts        # Renders SQL migration files
-    context-renderer.ts    # Renders AI tool context files + references
+    context-renderer.ts    # Renders LaunchBlocks_implementation.md + tool context files + references
     template-utils.ts      # Handlebars helpers and template context builder
   templates/               # Handlebars templates for all generated files
     specs/                 # Module spec templates
