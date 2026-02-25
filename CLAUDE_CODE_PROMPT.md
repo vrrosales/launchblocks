@@ -16,7 +16,7 @@ vibekit init
 ```
 vibekit/
 ├── vibekit.config.yaml             # Generated from interview answers
-├── AI_CONTEXT.md                   # Master spec — universal, tool-agnostic
+├── LaunchBlocks_implementation.md                   # Master spec — universal, tool-agnostic
 ├── CLAUDE.md                       # Claude Code context (if selected)
 ├── .cursorrules                    # Cursor context (if selected)
 ├── AGENTS.md                       # Codex context (if selected)
@@ -81,7 +81,7 @@ The main (and initially only) command. Here's what it does step by step:
 
 **Step 2: Run the Configuration Interview**
 
-Ask the 7 questions defined in AI_CONTEXT.md Section 3. Here's how each maps to CLI prompts:
+Ask the 7 questions defined in LaunchBlocks_implementation.md Section 3. Here's how each maps to CLI prompts:
 
 **Q1: Roles**
 ```
@@ -186,10 +186,10 @@ Write the YAML config file from the interview answers.
 Use templates to produce every file in the output structure. The templates are stored in the CLI package under `src/templates/`. Each template uses Mustache/Handlebars syntax to inject config values.
 
 Key rendering logic:
-- `AI_CONTEXT.md` — the master spec. All `[CONFIGURED: ...]` markers in the template get replaced with actual values from the config. For example, `[CONFIGURED: owner_role]` becomes `super_admin` (or whatever the user chose). The output should read as a fully resolved, concrete spec — no markers left.
+- `LaunchBlocks_implementation.md` — the master spec. All `[CONFIGURED: ...]` markers in the template get replaced with actual values from the config. For example, `[CONFIGURED: owner_role]` becomes `super_admin` (or whatever the user chose). The output should read as a fully resolved, concrete spec — no markers left.
 - `specs/*.md` — each spec file is a detailed module specification. These also get config values injected.
 - `schemas/migrations/*.sql` — actual SQL files. The roles and permissions tables get seed data from the config. The user_profiles trigger uses the configured default role and approval behavior.
-- Tool-specific context files (`CLAUDE.md`, `.cursorrules`, etc.) — thin wrappers that say "read AI_CONTEXT.md and implement everything in it."
+- Tool-specific context files (`CLAUDE.md`, `.cursorrules`, etc.) — thin wrappers that say "read LaunchBlocks_implementation.md and implement everything in it."
 - `references/*.md` — static reference files (no config injection needed).
 
 **Step 5: Summary**
@@ -198,7 +198,7 @@ Key rendering logic:
 
   Created:
     vibekit/vibekit.config.yaml
-    vibekit/AI_CONTEXT.md
+    vibekit/LaunchBlocks_implementation.md
     vibekit/CLAUDE.md
     vibekit/specs/ (7 spec files)
     vibekit/schemas/migrations/ (4 SQL files)
@@ -207,11 +207,11 @@ Key rendering logic:
   Next steps:
     1. cd vibekit
     2. Open your project in Claude Code
-    3. Tell Claude: "Read AI_CONTEXT.md and implement all 7 modules using Next.js"
+    3. Tell Claude: "Read LaunchBlocks_implementation.md and implement all 7 modules using Next.js"
        (or whatever framework you prefer)
     4. Claude will read the specs and start building!
 
-  The AI_CONTEXT.md is your master blueprint.
+  The LaunchBlocks_implementation.md is your master blueprint.
   The SQL files in schemas/migrations/ are ready to run in Supabase.
 ```
 
@@ -266,7 +266,7 @@ vibekit-cli/
 │   │   ├── sql-renderer.ts        # Renders SQL migration templates
 │   │   └── context-renderer.ts    # Renders AI tool context files
 │   ├── templates/                  # Mustache/Handlebars template files
-│   │   ├── ai-context.md.hbs      # AI_CONTEXT.md template
+│   │   ├── ai-context.md.hbs      # LaunchBlocks_implementation.md template
 │   │   ├── claude-md.md.hbs       # CLAUDE.md template
 │   │   ├── cursorrules.md.hbs     # .cursorrules template
 │   │   ├── agents-md.md.hbs       # AGENTS.md template
@@ -305,7 +305,7 @@ vibekit-cli/
 
 When rendering templates, follow these rules:
 
-1. **AI_CONTEXT.md** — This is the big one. The template should be the full AI_CONTEXT.md master spec with `[CONFIGURED: ...]` markers replaced by Handlebars variables. For example:
+1. **LaunchBlocks_implementation.md** — This is the big one. The template should be the full LaunchBlocks_implementation.md master spec with `[CONFIGURED: ...]` markers replaced by Handlebars variables. For example:
    - `[CONFIGURED: owner_role]` → `{{owner_role}}` in template → resolved to actual value
    - `[CONFIGURED: default_role]` → `{{default_role}}`
    - `[CONFIGURED: require_approval]` → used for conditional sections (`{{#if require_approval}}...{{/if}}`)
@@ -394,17 +394,17 @@ When rendering templates, follow these rules:
    $$;
    ```
 
-3. **Spec files** — Each spec file expands on its corresponding section in AI_CONTEXT.md with more detail, edge cases, and examples. Inject config values where relevant (role names in examples, permission names in access rules).
+3. **Spec files** — Each spec file expands on its corresponding section in LaunchBlocks_implementation.md with more detail, edge cases, and examples. Inject config values where relevant (role names in examples, permission names in access rules).
 
 4. **Tool-specific context files** — These are thin. Example `CLAUDE.md`:
    ```markdown
    # CLAUDE.md
 
-   Read `AI_CONTEXT.md` in this directory. It is the complete specification for this project.
+   Read `LaunchBlocks_implementation.md` in this directory. It is the complete specification for this project.
 
    Implement all 7 modules in the order specified (Module 1 through Module 7).
    Use the SQL files in `schemas/migrations/` directly — they are ready to run in Supabase.
-   Refer to `specs/` for detailed module specifications beyond what AI_CONTEXT.md covers.
+   Refer to `specs/` for detailed module specifications beyond what LaunchBlocks_implementation.md covers.
    Refer to `references/` for implementation patterns and pricing data.
    The `vibekit.config.yaml` file contains the project configuration — do not modify it.
    ```
@@ -437,8 +437,8 @@ Critical: The `bin` field is what makes `npx vibekit init` work. The compiled en
 
 This is the most labor-intensive part. You need to write the actual content for every template. Here's where to source it:
 
-- **AI_CONTEXT.md template** — I will provide this file. It's the master spec. Convert all `[CONFIGURED: ...]` markers to Handlebars variables. Add conditionals for `require_approval` sections.
-- **Spec files** — Expand each AI_CONTEXT.md module section into a standalone, detailed spec. Add edge cases, error scenarios, more detailed UI descriptions, and implementation hints.
+- **LaunchBlocks_implementation.md template** — I will provide this file. It's the master spec. Convert all `[CONFIGURED: ...]` markers to Handlebars variables. Add conditionals for `require_approval` sections.
+- **Spec files** — Expand each LaunchBlocks_implementation.md module section into a standalone, detailed spec. Add edge cases, error scenarios, more detailed UI descriptions, and implementation hints.
 - **SQL migrations** — Write complete, valid Supabase SQL for all 8 tables, RLS policies, triggers, functions, indexes, and seed data. Every `[CONFIGURED: ...]` becomes a Handlebars variable.
 - **Reference files** — Write supabase auth patterns, Vercel deployment checklist, and LLM pricing table as static markdown.
 - **Tool context files** — Short wrapper files for each AI tool.
@@ -451,15 +451,15 @@ After building, verify:
 2. `npx vibekit init` with custom roles (e.g., owner, editor, viewer) → all files reflect custom roles, SQL seeds correct data
 3. `npx vibekit init` with require_approval = false → pending-approval screen omitted from specs, SQL trigger sets status to 'approved'
 4. All generated SQL files are valid (run them against a fresh Supabase project)
-5. AI_CONTEXT.md has no remaining `[CONFIGURED: ...]` markers — everything is resolved
+5. LaunchBlocks_implementation.md has no remaining `[CONFIGURED: ...]` markers — everything is resolved
 6. The generated CLAUDE.md / .cursorrules / etc. are correct for the selected tool
 
 ## Important Principles
 
 1. **The CLI produces specs, not app code.** Never generate React components, API routes, or framework-specific code. Only markdown specs and SQL.
-2. **Every generated file must be self-consistent.** If the user chose roles "owner, editor, viewer", every spec file, SQL file, and the AI_CONTEXT.md must consistently use those role names.
+2. **Every generated file must be self-consistent.** If the user chose roles "owner, editor, viewer", every spec file, SQL file, and the LaunchBlocks_implementation.md must consistently use those role names.
 3. **SQL must be runnable as-is.** A user should be able to copy the migration files into Supabase's SQL editor and run them without modification.
-4. **The AI_CONTEXT.md must be fully resolved.** No template markers, no `[CONFIGURED: ...]`, no `{{variables}}` in the output. It reads as a concrete, specific specification for this user's project.
+4. **The LaunchBlocks_implementation.md must be fully resolved.** No template markers, no `[CONFIGURED: ...]`, no `{{variables}}` in the output. It reads as a concrete, specific specification for this user's project.
 5. **Keep the CLI simple and fast.** No network calls, no API keys, no accounts. It's a local scaffolding tool.
 
 ## Start Here
@@ -473,4 +473,4 @@ After building, verify:
 7. Test with default and custom configurations
 8. Publish to npm
 
-The attached AI_CONTEXT.md file in this project is the source material for the master spec template. Convert it to a Handlebars template where `[CONFIGURED: ...]` markers become template variables.
+The attached LaunchBlocks_implementation.md file in this project is the source material for the master spec template. Convert it to a Handlebars template where `[CONFIGURED: ...]` markers become template variables.

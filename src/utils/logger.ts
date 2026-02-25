@@ -14,29 +14,29 @@ function nextSteps(aiTool: AiTool): string[] {
       return [
         "1. Open your project in Claude Code",
         "2. When prompted, authenticate Supabase & Vercel via OAuth",
-        '3. Tell Claude: "Read AI_CONTEXT.md and implement all 7 modules"',
+        '3. Tell Claude: "Read LaunchBlocks_implementation.md and implement all 7 modules"',
       ];
     case "cursor":
       return [
         "1. Open your project in Cursor",
         "2. When prompted, authenticate MCP servers",
-        '3. In Composer, tell it: "Read AI_CONTEXT.md and implement all 7 modules"',
+        '3. In Composer, tell it: "Read LaunchBlocks_implementation.md and implement all 7 modules"',
       ];
     case "codex":
       return [
         "1. Navigate to your project directory",
-        '2. Run: codex "Read AI_CONTEXT.md and implement all 7 modules"',
+        '2. Run: codex "Read LaunchBlocks_implementation.md and implement all 7 modules"',
       ];
     case "gemini":
       return [
         "1. Navigate to your project directory",
-        '2. Run: gemini "Read AI_CONTEXT.md and implement all 7 modules"',
+        '2. Run: gemini "Read LaunchBlocks_implementation.md and implement all 7 modules"',
       ];
     case "all":
       return [
         "1. Open your project in your preferred AI coding tool",
         "2. If using Claude Code or Cursor, authenticate MCP servers when prompted",
-        '3. Tell the AI: "Read AI_CONTEXT.md and implement all 7 modules"',
+        '3. Tell the AI: "Read LaunchBlocks_implementation.md and implement all 7 modules"',
       ];
   }
 }
@@ -152,7 +152,7 @@ export const logger = {
     }
     console.log();
     console.log(
-      chalk.white("  The AI_CONTEXT.md is your master blueprint.")
+      chalk.white("  The LaunchBlocks_implementation.md is your master blueprint.")
     );
     console.log(
       chalk.white(

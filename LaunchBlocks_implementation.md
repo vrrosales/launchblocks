@@ -1,4 +1,4 @@
-# AI_CONTEXT.md — VibeKit Master Specification
+# LaunchBlocks_implementation.md — VibeKit Master Specification
 
 > **What this file is:** The single source of truth for any AI coding tool implementing a VibeKit project. Every tool-specific context file (CLAUDE.md, .cursorrules, AGENTS.md, GEMINI.md) points here.
 >

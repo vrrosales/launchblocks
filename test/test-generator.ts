@@ -30,7 +30,7 @@ async function runTest(label: string, answers: InterviewAnswers) {
   const launchblocksDir = path.join(outputDir, "launchblocks");
   const checks = [
     "launchblocks.config.yaml",
-    "AI_CONTEXT.md",
+    "LaunchBlocks_implementation.md",
     "specs/01-project-setup.md",
     "specs/02-database.md",
     "specs/03-authentication.md",
@@ -99,13 +99,13 @@ async function runTest(label: string, answers: InterviewAnswers) {
     }
   }
 
-  // Verify AI_CONTEXT.md has no [CONFIGURED: ...] markers
+  // Verify LaunchBlocks_implementation.md has no [CONFIGURED: ...] markers
   const aiContext = await fs.readFile(
-    path.join(launchblocksDir, "AI_CONTEXT.md"),
+    path.join(launchblocksDir, "LaunchBlocks_implementation.md"),
     "utf-8"
   );
   if (aiContext.includes("[CONFIGURED:")) {
-    console.log("  FAIL: AI_CONTEXT.md contains unresolved [CONFIGURED:] markers");
+    console.log("  FAIL: LaunchBlocks_implementation.md contains unresolved [CONFIGURED:] markers");
     failed++;
   } else {
     passed++;

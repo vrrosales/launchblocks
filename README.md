@@ -13,7 +13,7 @@ Instead of writing boilerplate or starting from scratch, Launchblocks generates 
 - **LLM Audit Trail** (logging every AI call with token counts, cost estimates, and latency)
 - **Signup Approval Workflow** (optional admin approval for new users)
 
-The generated output includes SQL migrations ready to run in Supabase, detailed module specs, and a master `AI_CONTEXT.md` file that any AI coding tool can use to implement the entire project.
+The generated output includes SQL migrations ready to run in Supabase, detailed module specs, and a master `LaunchBlocks_implementation.md` file that any AI coding tool can use to implement the entire project.
 
 ## Quick Start
 
@@ -47,7 +47,7 @@ After answering, Launchblocks generates a `launchblocks/` directory with everyth
 
 ```
 launchblocks/
-  AI_CONTEXT.md                              # Master specification for your app
+  LaunchBlocks_implementation.md                              # Master specification for your app
   launchblocks.config.yaml                   # Project configuration
   CLAUDE.md / .cursorrules / AGENTS.md / GEMINI.md  # AI tool context file
   specs/
@@ -75,7 +75,7 @@ launchblocks/
 
 1. `cd launchblocks`
 2. Open the project in your AI coding tool
-3. Tell it: *"Read AI_CONTEXT.md and implement all 7 modules"*
+3. Tell it: *"Read LaunchBlocks_implementation.md and implement all 7 modules"*
 
 The AI tool will use the generated specs and SQL migrations to build a complete full-stack app on Next.js + Supabase + Vercel.
 

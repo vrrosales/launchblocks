@@ -23,7 +23,7 @@ export async function generateProject(
   await writeConfig(outputDir, config);
   allFiles.push("launchblocks/launchblocks.config.yaml");
 
-  // 2. Render AI_CONTEXT.md + tool context files + references
+  // 2. Render LaunchBlocks_implementation.md + tool context files + references
   const contextFiles = await renderContextFiles(outputDir, config, context);
   allFiles.push(...contextFiles);
 

@@ -29,7 +29,7 @@ export async function renderContextFiles(
   const templatesDir = getTemplatesDir();
   const created: string[] = [];
 
-  // Render AI_CONTEXT.md (always generated)
+  // Render LaunchBlocks_implementation.md (always generated)
   const aiContextTemplatePath = path.join(templatesDir, "ai-context.md.hbs");
   const aiContextTemplate = await fs.readFile(aiContextTemplatePath, "utf-8");
   const aiContextCompiled = Handlebars.compile(aiContextTemplate, {
@@ -37,11 +37,11 @@ export async function renderContextFiles(
   });
   const aiContextRendered = aiContextCompiled(context);
   await fs.outputFile(
-    path.join(outputDir, "AI_CONTEXT.md"),
+    path.join(outputDir, "LaunchBlocks_implementation.md"),
     aiContextRendered,
     "utf-8"
   );
-  created.push("launchblocks/AI_CONTEXT.md");
+  created.push("launchblocks/LaunchBlocks_implementation.md");
 
   // Render tool-specific context files based on selection
   const selectedTools =
