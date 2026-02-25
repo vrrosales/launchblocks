@@ -1,6 +1,7 @@
 import fs from "fs-extra";
 import path from "node:path";
 import os from "node:os";
+import type { AiTool } from "../interview/types.js";
 
 const MCP_URLS: Record<string, string> = {
   supabase: "https://mcp.supabase.com/mcp",
@@ -24,12 +25,21 @@ function readJsonSafe(filePath: string): McpConfig {
 
 export async function installMcpServer(
   name: string,
-  scope: "project" | "user"
+  scope: "project" | "user",
+  aiTool: AiTool
 ): Promise<void> {
-  const filePath =
-    scope === "project"
-      ? path.join(process.cwd(), ".mcp.json")
-      : path.join(os.homedir(), ".claude.json");
+  let filePath: string;
+
+  if (aiTool === "cursor") {
+    const cursorDir = path.join(process.cwd(), ".cursor");
+    await fs.ensureDir(cursorDir);
+    filePath = path.join(cursorDir, "mcp.json");
+  } else {
+    filePath =
+      scope === "project"
+        ? path.join(process.cwd(), ".mcp.json")
+        : path.join(os.homedir(), ".claude.json");
+  }
 
   const config = readJsonSafe(filePath);
 
@@ -45,7 +55,9 @@ export async function installMcpServer(
   await fs.outputFile(filePath, JSON.stringify(config, null, 2) + "\n", "utf-8");
 }
 
-export async function ensureGitignore(): Promise<boolean> {
+export async function ensureGitignore(
+  pattern: string = ".mcp.json"
+): Promise<boolean> {
   const gitignorePath = path.join(process.cwd(), ".gitignore");
 
   try {
@@ -54,14 +66,14 @@ export async function ensureGitignore(): Promise<boolean> {
       content = await fs.readFile(gitignorePath, "utf-8");
     }
 
-    if (content.includes(".mcp.json")) {
+    if (content.includes(pattern)) {
       return false;
     }
 
     const newline = content.length > 0 && !content.endsWith("\n") ? "\n" : "";
     await fs.outputFile(
       gitignorePath,
-      content + newline + ".mcp.json\n",
+      content + newline + pattern + "\n",
       "utf-8"
     );
     return true;

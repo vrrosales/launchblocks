@@ -1,10 +1,44 @@
 import chalk from "chalk";
 import type { SetupResult } from "../setup/types.js";
+import type { AiTool } from "../interview/types.js";
 
 function mcpLabel(result: SetupResult, name: "supabase" | "vercel"): string {
   const status = result[name];
   if (!status.installed) return "not configured";
   return status.location === "project" ? "project-level" : "user-level";
+}
+
+function nextSteps(aiTool: AiTool): string[] {
+  switch (aiTool) {
+    case "claude":
+      return [
+        "1. Open your project in Claude Code",
+        "2. When prompted, authenticate Supabase & Vercel via OAuth",
+        '3. Tell Claude: "Read AI_CONTEXT.md and implement all 7 modules"',
+      ];
+    case "cursor":
+      return [
+        "1. Open your project in Cursor",
+        "2. When prompted, authenticate MCP servers",
+        '3. In Composer, tell it: "Read AI_CONTEXT.md and implement all 7 modules"',
+      ];
+    case "codex":
+      return [
+        "1. Navigate to your project directory",
+        '2. Run: codex "Read AI_CONTEXT.md and implement all 7 modules"',
+      ];
+    case "gemini":
+      return [
+        "1. Navigate to your project directory",
+        '2. Run: gemini "Read AI_CONTEXT.md and implement all 7 modules"',
+      ];
+    case "all":
+      return [
+        "1. Open your project in your preferred AI coding tool",
+        "2. If using Claude Code or Cursor, authenticate MCP servers when prompted",
+        '3. Tell the AI: "Read AI_CONTEXT.md and implement all 7 modules"',
+      ];
+  }
 }
 
 export const logger = {
@@ -90,7 +124,7 @@ export const logger = {
     console.log(chalk.gray(`    ${filePath}`));
   },
 
-  summary(files: string[], setupResult?: SetupResult) {
+  summary(files: string[], setupResult: SetupResult | null, aiTool: AiTool) {
     console.log();
     logger.success("Launchblocks initialized successfully!\n");
     console.log(chalk.white("  Created:"));
@@ -113,17 +147,9 @@ export const logger = {
 
     console.log();
     console.log(chalk.white("  Next steps:"));
-    console.log(chalk.gray("    1. Open your project in Claude Code"));
-    console.log(
-      chalk.gray(
-        "    2. When prompted, authenticate Supabase & Vercel via OAuth"
-      )
-    );
-    console.log(
-      chalk.gray(
-        '    3. Tell Claude: "Read AI_CONTEXT.md and implement all 7 modules"'
-      )
-    );
+    for (const step of nextSteps(aiTool)) {
+      console.log(chalk.gray(`    ${step}`));
+    }
     console.log();
     console.log(
       chalk.white("  The AI_CONTEXT.md is your master blueprint.")

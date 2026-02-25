@@ -2,6 +2,7 @@ import fs from "fs-extra";
 import path from "node:path";
 import os from "node:os";
 import type { McpServerStatus } from "./types.js";
+import type { AiTool } from "../interview/types.js";
 
 interface McpConfig {
   mcpServers?: Record<string, unknown>;
@@ -31,15 +32,18 @@ function checkServer(
   return { name, installed: false, location: null };
 }
 
-export function detectMcpServers(): {
+export function detectMcpServers(aiTool: AiTool): {
   supabase: McpServerStatus;
   vercel: McpServerStatus;
 } {
-  const projectPath = path.join(process.cwd(), ".mcp.json");
-  const userPath = path.join(os.homedir(), ".claude.json");
+  const projectPath =
+    aiTool === "cursor"
+      ? path.join(process.cwd(), ".cursor", "mcp.json")
+      : path.join(process.cwd(), ".mcp.json");
+  const userConfig =
+    aiTool === "cursor" ? null : readJsonSafe(path.join(os.homedir(), ".claude.json"));
 
   const projectConfig = readJsonSafe(projectPath);
-  const userConfig = readJsonSafe(userPath);
 
   return {
     supabase: checkServer("supabase", projectConfig, userConfig),

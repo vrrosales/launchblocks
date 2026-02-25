@@ -17,10 +17,10 @@ export async function initCommand(): Promise<void> {
     const createdFiles = await generateProject(process.cwd(), config);
 
     // Step 5: MCP Server Setup
-    const setupResult = await runSetup();
+    const setupResult = await runSetup(answers.aiTool);
 
     // Step 6: Show summary
-    logger.summary(createdFiles, setupResult);
+    logger.summary(createdFiles, setupResult, answers.aiTool);
   } catch (error) {
     if (
       error instanceof Error &&

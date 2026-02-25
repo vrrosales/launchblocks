@@ -12,37 +12,37 @@ import { logger } from "../utils/logger.js";
 export async function runInterview(): Promise<InterviewAnswers> {
   logger.banner();
 
-  // Q1: Roles
-  logger.step("Step 1/8 — Roles");
+  // Q1: AI tool
+  logger.step("Step 1/8 — AI Tool");
+  const aiTool = await askAiTool();
+
+  // Q2: Roles
+  logger.step("Step 2/8 — Roles");
   const { roles, ownerRole, defaultRole } = await askRoles();
 
-  // Q2: Permissions (only for custom roles — defaults come pre-configured)
-  logger.step("Step 2/8 — Permissions");
+  // Q3: Permissions (only for custom roles — defaults come pre-configured)
+  logger.step("Step 3/8 — Permissions");
   await askPermissions(roles);
 
-  // Q3: Signup approval
-  logger.step("Step 3/8 — Signup Behavior");
+  // Q4: Signup approval
+  logger.step("Step 4/8 — Signup Behavior");
   const requireApproval = await askSignupApproval();
 
-  // Q4: Admin panel access
-  logger.step("Step 4/8 — Admin Panel Access");
+  // Q5: Admin panel access
+  logger.step("Step 5/8 — Admin Panel Access");
   const adminRoles = await askAdminAccess(roles);
 
-  // Q5: LLM access
-  logger.step("Step 5/8 — LLM Access");
+  // Q6: LLM access
+  logger.step("Step 6/8 — LLM Access");
   const llmAccessRoles = await askLlmAccess(roles);
 
-  // Q6: LLM providers
-  logger.step("Step 6/8 — LLM Providers");
+  // Q7: LLM providers
+  logger.step("Step 7/8 — LLM Providers");
   const llmProviders = await askProviders();
 
-  // Q7: App name
-  logger.step("Step 7/8 — App Info");
+  // Q8: App name
+  logger.step("Step 8/8 — App Info");
   const appName = await askAppInfo();
-
-  // Q8: AI tool
-  logger.step("Step 8/8 — AI Tool");
-  const aiTool = await askAiTool();
 
   return {
     appName,

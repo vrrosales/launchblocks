@@ -1,6 +1,7 @@
 import inquirer from "inquirer";
 import { logger } from "../utils/logger.js";
 import { installMcpServer, ensureGitignore } from "./install.js";
+import type { AiTool } from "../interview/types.js";
 
 const SERVICE_INFO: Record<
   string,
@@ -16,11 +17,21 @@ const SERVICE_INFO: Record<
   },
 };
 
-export async function guideService(name: "supabase" | "vercel"): Promise<{
+const TOOL_DISPLAY_NAME: Record<string, string> = {
+  claude: "Claude Code",
+  cursor: "Cursor",
+  all: "Claude Code",
+};
+
+export async function guideService(
+  name: "supabase" | "vercel",
+  aiTool: AiTool
+): Promise<{
   installed: boolean;
   scope: "project" | "user" | null;
 }> {
   const info = SERVICE_INFO[name];
+  const toolName = TOOL_DISPLAY_NAME[aiTool] ?? "Claude Code";
 
   logger.step(`${info.display} Setup`);
 
@@ -58,9 +69,19 @@ export async function guideService(name: "supabase" | "vercel"): Promise<{
 
   console.log();
   logger.info(
-    `After setup, authenticate in Claude Code when it connects to the ${info.display} MCP server.`
+    `After setup, authenticate in ${toolName} when it connects to the ${info.display} MCP server.`
   );
   console.log();
+
+  // Cursor only supports project-level MCP config
+  if (aiTool === "cursor") {
+    logger.info(`Installing to .cursor/mcp.json`);
+    await installMcpServer(name, "project", aiTool);
+    await ensureGitignore(".cursor/mcp.json");
+
+    logger.success(`${info.display} MCP server configured in .cursor/mcp.json`);
+    return { installed: true, scope: "project" };
+  }
 
   const { scope } = await inquirer.prompt([
     {
@@ -80,7 +101,7 @@ export async function guideService(name: "supabase" | "vercel"): Promise<{
     },
   ]);
 
-  await installMcpServer(name, scope);
+  await installMcpServer(name, scope, aiTool);
 
   if (scope === "project") {
     await ensureGitignore();
