@@ -1,0 +1,46 @@
+# Environment Variables — {{app_name}}
+
+Copy these into your `.env.local` file and fill in the values.
+
+```env
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+
+# LLM Providers
+{{#each providers_display}}
+{{#if (eq this.id "openai")}}
+OPENAI_API_KEY=sk-your-openai-key
+{{/if}}
+{{#if (eq this.id "anthropic")}}
+ANTHROPIC_API_KEY=sk-ant-your-anthropic-key
+{{/if}}
+{{#if (eq this.id "google")}}
+GOOGLE_AI_API_KEY=your-google-ai-key
+{{/if}}
+{{/each}}
+
+# App
+NEXT_PUBLIC_APP_NAME={{app_name}}
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+## Where to Find These Values
+
+| Variable | Where to find it |
+|---|---|
+| `SUPABASE_URL` | Supabase Dashboard → Settings → API → Project URL |
+| `SUPABASE_ANON_KEY` | Supabase Dashboard → Settings → API → `anon` `public` key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase Dashboard → Settings → API → `service_role` key (keep secret!) |
+{{#each providers_display}}
+{{#if (eq this.id "openai")}}
+| `OPENAI_API_KEY` | https://platform.openai.com/api-keys |
+{{/if}}
+{{#if (eq this.id "anthropic")}}
+| `ANTHROPIC_API_KEY` | https://console.anthropic.com/settings/keys |
+{{/if}}
+{{#if (eq this.id "google")}}
+| `GOOGLE_AI_API_KEY` | https://aistudio.google.com/app/apikey |
+{{/if}}
+{{/each}}

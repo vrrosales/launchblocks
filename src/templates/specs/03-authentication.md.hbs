@@ -1,0 +1,362 @@
+# Module 3: Authentication
+
+> Application: **{{app_name}}**
+> This spec covers Supabase Auth integration, signup/login/logout flows, password reset, session management, and route protection middleware.
+
+---
+
+## 3.1 Authentication Provider
+
+Use **Supabase Auth** as the sole authentication provider. It handles:
+
+- Email/password authentication
+- OAuth providers (Google, GitHub, etc. -- configured in Supabase Dashboard)
+- Session tokens (JWT) with automatic refresh
+- Password reset flows via email
+
+All auth state is managed through Supabase client libraries. Do not implement custom JWT logic or session storage.
+
+---
+
+## 3.2 Signup Flow
+
+### Request
+
+Users sign up via the `/signup` page with:
+
+| Field | Required | Notes |
+|---|---|---|
+| Email | Yes | Must be a valid email |
+| Password | Yes | Minimum 8 characters |
+| Full Name | Yes | Stored in `user_profiles.full_name` |
+
+### Process
+
+1. Client calls `supabase.auth.signUp()` with email, password, and `options.data.full_name`
+2. Supabase creates the `auth.users` record
+3. The `handle_new_user()` trigger automatically creates a `user_profiles` row:
+   - `role` = `'{{default_role}}'`
+   - `status` = `'{{approval_status}}'`
+4. Supabase sends a confirmation email (if email confirmation is enabled in Supabase Dashboard)
+
+{{#if require_approval}}
+### Post-Signup: Approval Required
+
+Since this project requires admin approval for new signups:
+
+1. After signup, the user's `status` is `'pending_approval'`
+2. Redirect the user to `/pending-approval`
+3. The pending-approval page displays a message: "Your account is pending approval. You will receive access once an administrator approves your account."
+4. On subsequent logins, check the user's `status` from `user_profiles`:
+   - If `pending_approval` -> redirect to `/pending-approval`
+   - If `suspended` -> show an error message and sign the user out
+   - If `approved` -> allow access to the dashboard
+5. An admin (roles: {{admin_roles_joined}}) approves the user via the admin panel (see Module 4)
+6. Once approved, the user can access all features permitted by their role
+
+### Middleware Status Check
+
+Every request to a protected route must verify the user's status:
+
+```typescript
+const { data: profile } = await supabase
+  .from('user_profiles')
+  .select('status, role')
+  .eq('id', user.id)
+  .single();
+
+if (profile?.status === 'pending_approval') {
+  // Redirect to /pending-approval
+}
+if (profile?.status === 'suspended') {
+  // Sign out and redirect to /login with error
+}
+```
+{{else}}
+### Post-Signup: Immediate Access
+
+Since this project does not require admin approval:
+
+1. After signup, the user's `status` is `'approved'`
+2. Redirect the user directly to `/dashboard`
+3. The user has immediate access to all features permitted by the `{{default_role}}` role
+
+### Middleware Status Check
+
+Still check for `suspended` status on protected routes:
+
+```typescript
+const { data: profile } = await supabase
+  .from('user_profiles')
+  .select('status, role')
+  .eq('id', user.id)
+  .single();
+
+if (profile?.status === 'suspended') {
+  // Sign out and redirect to /login with error
+}
+```
+{{/if}}
+
+---
+
+## 3.3 Login Flow
+
+### Email/Password Login
+
+1. User enters email and password on `/login`
+2. Client calls `supabase.auth.signInWithPassword({ email, password })`
+3. On success, Supabase sets session cookies automatically (via `@supabase/ssr`)
+4. Fetch the user's profile to check status:
+{{#if require_approval}}
+   - `pending_approval` -> redirect to `/pending-approval`
+   - `suspended` -> sign out, show error on `/login`
+   - `approved` -> redirect to `/dashboard`
+{{else}}
+   - `suspended` -> sign out, show error on `/login`
+   - `approved` -> redirect to `/dashboard`
+{{/if}}
+
+### OAuth Login
+
+1. User clicks an OAuth button (e.g., "Sign in with Google")
+2. Client calls `supabase.auth.signInWithOAuth({ provider, options: { redirectTo } })`
+3. User is redirected to the OAuth provider
+4. On return, the `/auth/callback` route exchanges the code for a session
+5. Same status-check logic applies after the callback completes
+
+### Login Error Handling
+
+| Error | User Message |
+|---|---|
+| `Invalid login credentials` | "Invalid email or password. Please try again." |
+| `Email not confirmed` | "Please check your email to confirm your account." |
+| Network error | "Unable to connect. Please check your internet connection." |
+| Account suspended | "Your account has been suspended. Contact an administrator." |
+
+---
+
+## 3.4 Password Reset Flow
+
+### Step 1: Request Reset
+
+1. User navigates to `/forgot-password`
+2. User enters their email address
+3. Client calls `supabase.auth.resetPasswordForEmail(email, { redirectTo: '/reset-password' })`
+4. Display a confirmation message: "If an account exists for that email, we've sent a password reset link."
+5. Do not reveal whether the email exists in the system
+
+### Step 2: Reset Password
+
+1. User clicks the link in their email, which contains a recovery token
+2. User lands on `/reset-password` with the token in the URL hash
+3. Supabase automatically exchanges the token for a session
+4. User enters a new password (with confirmation field)
+5. Client calls `supabase.auth.updateUser({ password: newPassword })`
+6. On success, redirect to `/dashboard` (or `/login` with a success message)
+
+### Validation
+
+- New password must be at least 8 characters
+- Password and confirmation must match
+- Show validation errors inline before submission
+
+---
+
+## 3.5 Logout
+
+1. Client calls `supabase.auth.signOut()`
+2. Clear any client-side state (user context, cached profile data)
+3. Redirect to `/login`
+
+Provide a sign-out button in the dashboard layout header or sidebar that is always accessible.
+
+---
+
+## 3.6 Session Management
+
+### How Sessions Work
+
+- Supabase Auth issues a JWT access token (short-lived, ~1 hour) and a refresh token (long-lived)
+- The `@supabase/ssr` package stores these in HTTP-only cookies
+- Token refresh happens automatically when the access token expires
+- The middleware refreshes the session on every request to keep it alive
+
+### Auth State Listener
+
+Set up a global auth state listener in the root layout or a provider component:
+
+```typescript
+useEffect(() => {
+  const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    (event, session) => {
+      if (event === 'SIGNED_OUT') {
+        router.push('/login');
+      }
+      if (event === 'TOKEN_REFRESHED') {
+        // Session refreshed, no action needed
+      }
+    }
+  );
+  return () => subscription.unsubscribe();
+}, []);
+```
+
+### Session in Server Components
+
+Always use `supabase.auth.getUser()` (not `getSession()`) in server-side code to validate the user. `getUser()` verifies the JWT with Supabase, while `getSession()` only reads the local token without verification.
+
+---
+
+## 3.7 Auth Callback Route
+
+Implement `GET /auth/callback` to handle OAuth redirects and email confirmation links.
+
+```typescript
+// app/auth/callback/route.ts
+export async function GET(request: Request) {
+  const { searchParams, origin } = new URL(request.url);
+  const code = searchParams.get('code');
+  const next = searchParams.get('next') ?? '/dashboard';
+
+  if (code) {
+    const supabase = await createClient();
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (!error) {
+      return NextResponse.redirect(`${origin}${next}`);
+    }
+  }
+
+  return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`);
+}
+```
+
+---
+
+## 3.8 Middleware for Route Protection
+
+Implement Next.js middleware to protect routes and manage auth redirects.
+
+### Route Classification
+
+| Route Pattern | Access Level | Behavior |
+|---|---|---|
+| `/login`, `/signup`, `/forgot-password` | Public | Redirect to `/dashboard` if already logged in |
+| `/reset-password` | Public | Allow even if logged in (user may be resetting password) |
+{{#if require_approval}}
+| `/pending-approval` | Authenticated | Only for users with `pending_approval` status |
+{{/if}}
+| `/dashboard/**` | Authenticated + Approved | Redirect to `/login` if not authenticated |
+| `/admin/**` | Authenticated + Admin | Requires `manage_users` permission |
+| `/api/admin/**` | Authenticated + Admin | API-level permission check |
+| `/api/health` | Public | No auth required |
+
+### Middleware Logic
+
+```typescript
+export async function middleware(request: NextRequest) {
+  // 1. Create Supabase client with request cookies
+  // 2. Refresh the session (keeps tokens alive)
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const isAuthPage = ['/login', '/signup', '/forgot-password'].some(
+    p => request.nextUrl.pathname.startsWith(p)
+  );
+  const isProtectedRoute = request.nextUrl.pathname.startsWith('/dashboard')
+    || request.nextUrl.pathname.startsWith('/admin');
+
+  // 3. If user is logged in and visiting auth pages, redirect to dashboard
+  if (user && isAuthPage) {
+    return NextResponse.redirect(new URL('/dashboard', request.url));
+  }
+
+  // 4. If no user and visiting protected routes, redirect to login
+  if (!user && isProtectedRoute) {
+    return NextResponse.redirect(new URL('/login', request.url));
+  }
+
+  // 5. Return response with updated cookies
+  return response;
+}
+
+export const config = {
+  matcher: [
+    '/dashboard/:path*',
+    '/admin/:path*',
+    '/login',
+    '/signup',
+    '/forgot-password',
+{{#if require_approval}}
+    '/pending-approval',
+{{/if}}
+  ],
+};
+```
+
+---
+
+## 3.9 Required Screens
+
+Implement the following auth-related pages:
+
+### `/login`
+- Email and password fields
+- "Forgot password?" link
+- "Don't have an account? Sign up" link
+- OAuth provider buttons (if configured in Supabase)
+- Error display area
+
+### `/signup`
+- Full name, email, and password fields
+- Password strength indicator (recommended)
+- "Already have an account? Log in" link
+- Terms acceptance checkbox (optional)
+{{#if require_approval}}
+- Note below the form: "New accounts require administrator approval."
+{{/if}}
+
+### `/forgot-password`
+- Email field
+- "Back to login" link
+- Success message after submission
+
+### `/reset-password`
+- New password field
+- Confirm password field
+- Validation feedback
+
+{{#if require_approval}}
+### `/pending-approval`
+- Informational message: account is awaiting approval
+- "Log out" button
+- Optional: "Contact administrator" link or email
+- This page should check the user's current status on load -- if approved, redirect to `/dashboard`
+{{/if}}
+
+---
+
+## 3.10 Error Handling
+
+### Client-Side
+
+- Show form validation errors inline (below the relevant field)
+- Show server errors as a banner/toast at the top of the form
+- Never display raw Supabase error objects to users
+- Map Supabase error codes to friendly messages
+
+### Server-Side (API Routes)
+
+- Return `401 Unauthorized` if no valid session
+- Return `403 Forbidden` if the user lacks the required role or permission
+- Return `400 Bad Request` for invalid input
+- Always return JSON responses: `{ error: "Human-readable message" }`
+
+### Common Auth Error Mappings
+
+| Supabase Error | HTTP Status | User Message |
+|---|---|---|
+| `invalid_credentials` | 401 | "Invalid email or password." |
+| `email_not_confirmed` | 403 | "Please confirm your email before logging in." |
+| `user_already_exists` | 409 | "An account with this email already exists." |
+| `weak_password` | 400 | "Password must be at least 8 characters." |
+| `over_request_rate_limit` | 429 | "Too many attempts. Please try again later." |

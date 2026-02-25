@@ -1,0 +1,14 @@
+# .cursorrules
+
+Read `AI_CONTEXT.md` in this directory. It is the complete specification for this project.
+
+Implement all 7 modules in the order specified (Module 1 through Module 7).
+Use the SQL files in `schemas/migrations/` directly — they are ready to run in Supabase.
+Refer to `specs/` for detailed module specifications beyond what AI_CONTEXT.md covers.
+Refer to `references/` for implementation patterns and pricing data.
+The `launchblocks.config.yaml` file contains the project configuration — do not modify it.
+
+Roles: {{role_names_joined}}
+Owner role: {{owner_role}} | Default role: {{default_role}}
+{{#if require_approval}}New signups require admin approval.{{else}}New signups get immediate access.{{/if}}
+LLM Providers: {{#each providers_display}}{{this.name}}{{#unless @last}}, {{/unless}}{{/each}}

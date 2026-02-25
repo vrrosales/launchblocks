@@ -1,0 +1,282 @@
+# Module 1: Project Setup & Hosting
+
+> Application: **{{app_name}}**
+> This spec covers project scaffolding, Supabase client initialization, environment configuration, and Vercel deployment.
+
+---
+
+## 1.1 Framework Scaffolding
+
+Use a modern React meta-framework (Next.js App Router is recommended). The project must support:
+
+- Server-side rendering and API routes (for secure Supabase service-role calls)
+- File-based routing with layouts
+- Middleware (for auth-protected routes)
+- Environment variable support (`NEXT_PUBLIC_*` for client, plain for server)
+
+### Recommended Tooling
+
+| Tool | Purpose |
+|---|---|
+| Next.js (App Router) | Framework |
+| TypeScript | Type safety |
+| Tailwind CSS | Styling |
+| Supabase JS SDK | Database and auth |
+| `@supabase/ssr` | Server-side auth helpers |
+
+---
+
+## 1.2 Directory Structure
+
+Organize the project as follows. Adapt to your framework but keep the logical separation:
+
+```
+{{app_name}}/
+├── app/
+│   ├── (auth)/                  # Auth route group (login, signup, etc.)
+│   │   ├── login/page.tsx
+│   │   ├── signup/page.tsx
+│   │   ├── forgot-password/page.tsx
+│   │   ├── reset-password/page.tsx
+{{#if require_approval}}
+│   │   ├── pending-approval/page.tsx
+{{/if}}
+│   │   └── layout.tsx           # Auth layout (centered card)
+│   ├── (dashboard)/             # Protected route group
+│   │   ├── dashboard/page.tsx
+│   │   ├── admin/               # Admin panel ({{admin_roles_joined}} only)
+│   │   │   ├── users/page.tsx
+│   │   │   └── layout.tsx
+│   │   ├── prompts/page.tsx
+│   │   └── layout.tsx           # Dashboard layout (sidebar + header)
+│   ├── auth/
+│   │   └── callback/route.ts    # OAuth callback handler
+│   ├── api/
+│   │   ├── health/route.ts      # Health check endpoint
+│   │   ├── admin/
+│   │   │   └── users/route.ts   # Admin user management API
+│   │   └── llm/
+│   │       └── chat/route.ts    # LLM gateway API
+│   ├── layout.tsx               # Root layout
+│   └── page.tsx                 # Landing / redirect
+├── lib/
+│   ├── supabase/
+│   │   ├── client.ts            # Browser Supabase client
+│   │   ├── server.ts            # Server Supabase client
+│   │   └── admin.ts             # Service-role Supabase client
+│   ├── auth/
+│   │   └── middleware.ts        # Auth middleware helpers
+│   └── utils.ts                 # Shared utilities
+├── components/
+│   ├── ui/                      # Reusable UI primitives
+│   └── layout/                  # Layout components (sidebar, header)
+├── middleware.ts                 # Next.js middleware (route protection)
+├── launchblocks/                # Launchblocks-generated files (do not edit)
+│   ├── AI_CONTEXT.md
+│   ├── specs/
+│   ├── schemas/migrations/
+│   └── references/
+└── .env.local                   # Environment variables (not committed)
+```
+
+---
+
+## 1.3 Environment Variables
+
+Create a `.env.local` file at the project root. Never commit this file.
+
+### Required Variables
+
+```env
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+
+# LLM Provider API Keys
+{{#each providers_display}}
+{{#if (eq this.id "openai")}}
+OPENAI_API_KEY=sk-your-openai-key
+{{/if}}
+{{#if (eq this.id "anthropic")}}
+ANTHROPIC_API_KEY=sk-ant-your-anthropic-key
+{{/if}}
+{{#if (eq this.id "google")}}
+GOOGLE_AI_API_KEY=your-google-ai-key
+{{/if}}
+{{/each}}
+
+# App Configuration
+NEXT_PUBLIC_APP_NAME={{app_name}}
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+### .env.example
+
+Create `.env.example` with placeholder values (committed to repo) so collaborators know what variables are required. Use the exact same keys with empty or placeholder values.
+
+### Variable Access Rules
+
+| Prefix | Accessible From | Use For |
+|---|---|---|
+| `NEXT_PUBLIC_*` | Client + Server | Supabase URL, anon key, app name |
+| No prefix | Server only | Service role key, LLM API keys |
+
+**Never expose `SUPABASE_SERVICE_ROLE_KEY` or LLM API keys to the client.** All LLM calls must go through server-side API routes.
+
+---
+
+## 1.4 Supabase Client Initialization
+
+Create three Supabase client utilities. Each serves a different context.
+
+### Browser Client (`lib/supabase/client.ts`)
+
+Used in Client Components. Creates a single shared instance.
+
+```typescript
+import { createBrowserClient } from '@supabase/ssr';
+
+export function createClient() {
+  return createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+}
+```
+
+### Server Client (`lib/supabase/server.ts`)
+
+Used in Server Components, Server Actions, and Route Handlers. Manages cookies for session continuity.
+
+```typescript
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
+
+export async function createClient() {
+  const cookieStore = await cookies();
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() { return cookieStore.getAll(); },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            cookieStore.set(name, value, options)
+          );
+        },
+      },
+    }
+  );
+}
+```
+
+### Admin Client (`lib/supabase/admin.ts`)
+
+Used only on the server for privileged operations (bypasses RLS). Used for LLM audit logging and admin operations.
+
+```typescript
+import { createClient } from '@supabase/supabase-js';
+
+export function createAdminClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
+}
+```
+
+---
+
+## 1.5 Health Check Endpoint
+
+Implement `GET /api/health` to verify the deployment is live and can reach Supabase.
+
+### Specification
+
+| Field | Value |
+|---|---|
+| Method | GET |
+| Path | `/api/health` |
+| Auth | None (public) |
+| Response | JSON |
+
+### Response Format
+
+```json
+{
+  "status": "ok",
+  "app": "{{app_name}}",
+  "timestamp": "2025-01-01T00:00:00.000Z",
+  "supabase": "connected"
+}
+```
+
+### Implementation Notes
+
+- Attempt a lightweight Supabase query (e.g., `SELECT 1` or read from the `roles` table) using the anon key
+- If the Supabase check fails, return `"supabase": "error"` with a 503 status
+- Do not expose internal error details in production
+- Keep the response under 100ms if possible
+
+---
+
+## 1.6 Vercel Configuration
+
+### vercel.json (optional)
+
+Most Next.js projects on Vercel require no configuration file. If needed:
+
+```json
+{
+  "framework": "nextjs",
+  "regions": ["iad1"]
+}
+```
+
+### Environment Variables in Vercel
+
+Set all variables from `.env.local` in Vercel Dashboard under Settings > Environment Variables. Apply them to Production, Preview, and Development environments.
+
+### Build Settings
+
+| Setting | Value |
+|---|---|
+| Build Command | `next build` (auto-detected) |
+| Output Directory | `.next` (auto-detected) |
+| Install Command | `npm install` (auto-detected) |
+| Node.js Version | 18.x or 20.x |
+
+---
+
+## 1.7 Deployment Verification
+
+After deploying to Vercel, verify the following in order:
+
+1. **Health check**: `GET https://your-app.vercel.app/api/health` returns `{"status": "ok", "supabase": "connected"}`
+2. **Landing page**: The root URL loads without errors
+3. **Auth pages**: `/login` and `/signup` render correctly
+4. **Supabase redirect**: Set the Supabase Dashboard Site URL to your Vercel domain
+5. **Auth callback**: Add `https://your-app.vercel.app/auth/callback` to Supabase redirect allow-list
+6. **Signup flow**: Create a test account; confirm profile row appears in `user_profiles`
+7. **Admin promotion**: Manually promote the first user to `{{owner_role}}` in Supabase SQL Editor:
+   ```sql
+   UPDATE public.user_profiles
+   SET role = '{{owner_role}}', status = 'approved'
+   WHERE email = 'your-email@example.com';
+   ```
+8. **Protected routes**: Confirm unauthenticated users are redirected away from `/dashboard`
+
+---
+
+## 1.8 Error Handling Baseline
+
+Establish these patterns from the start:
+
+- All API routes return consistent JSON: `{ data, error }` for success, `{ error: string }` for failure
+- Use appropriate HTTP status codes: 200, 201, 400, 401, 403, 404, 500
+- Never leak stack traces or internal details in production responses
+- Log errors server-side with enough context to debug (user ID, endpoint, timestamp)
+- Client-side: display user-friendly toast messages for errors, not raw error strings

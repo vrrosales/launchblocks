@@ -1,0 +1,29 @@
+# CLAUDE.md
+
+Read `AI_CONTEXT.md` in this directory. It is the complete specification for this project.
+
+## Implementation Order
+
+Implement all 7 modules in the order specified (Module 1 through Module 7):
+
+1. **Project Setup** — Framework scaffolding, Supabase client, env vars
+2. **Database** — Run the SQL migrations in `schemas/migrations/` in Supabase
+3. **Authentication** — Signup, login, logout, password reset using Supabase Auth
+4. **User Management** — Profile CRUD, role management, admin approval{{#if require_approval}} (approval required for new signups){{/if}}
+5. **LLM Gateway** — Provider abstraction for {{llm_access_roles_joined}}
+6. **Prompt Management** — CRUD for prompt templates, versioning
+7. **LLM Audit** — Logging every LLM call with token counts and cost estimates
+
+## Key Files
+
+- `AI_CONTEXT.md` — Master specification (start here)
+- `specs/` — Detailed module specifications beyond what AI_CONTEXT.md covers
+- `schemas/migrations/` — SQL files ready to run in Supabase (run them in order)
+- `references/` — Implementation patterns and pricing data
+- `launchblocks.config.yaml` — Project configuration (do not modify)
+
+## Roles
+
+This project uses these roles: {{role_names_joined}}
+- Owner role: `{{owner_role}}` (full access)
+- Default role for new signups: `{{default_role}}`

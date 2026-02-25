@@ -1,0 +1,549 @@
+# Module 4: User Management (Admin)
+
+> Application: **{{app_name}}**
+> This spec covers the admin panel for managing users, roles, approval workflows, and permissions.
+
+---
+
+## 4.1 Overview
+
+The admin user management panel allows authorized users to view, edit, approve, and suspend user accounts. It is accessible to users with the following roles: **{{admin_roles_joined}}**.
+
+All admin operations require the `manage_users` permission, enforced at both the API and database (RLS) levels.
+
+### Admin Capabilities
+
+| Capability | Required Permission | Description |
+|---|---|---|
+| View user list | `manage_users` | Browse all registered users |
+| View user detail | `manage_users` | See full profile for any user |
+| Edit user profile | `manage_users` | Change name, email, metadata |
+| Change user role | `manage_roles` | Assign a different role |
+{{#if require_approval}}
+| Approve user | `manage_users` | Set status from `pending_approval` to `approved` |
+| Reject user | `manage_users` | Remove pending user account |
+{{/if}}
+| Suspend user | `manage_users` | Set status to `suspended` |
+| Unsuspend user | `manage_users` | Set status back to `approved` |
+
+---
+
+## 4.2 User List Page
+
+### Route: `/admin/users`
+
+Display a paginated, searchable, filterable table of all users.
+
+### Table Columns
+
+| Column | Source | Sortable | Notes |
+|---|---|---|---|
+| Name | `user_profiles.full_name` | Yes | Fallback to email if empty |
+| Email | `user_profiles.email` | Yes | -- |
+| Role | `user_profiles.role` | Yes | Display as badge with role's `display_name` |
+| Status | `user_profiles.status` | Yes | Color-coded badge: green=approved, yellow=pending, red=suspended |
+| Joined | `user_profiles.created_at` | Yes | Relative time (e.g., "3 days ago") |
+| Actions | -- | No | Edit button, quick actions dropdown |
+
+### Filters
+
+| Filter | Type | Options |
+|---|---|---|
+| Role | Dropdown/multi-select | {{#each roles}}`{{this.name}}`{{#unless @last}}, {{/unless}}{{/each}} |
+| Status | Dropdown/multi-select | `pending_approval`, `approved`, `suspended` |
+| Search | Text input | Searches `full_name` and `email` (case-insensitive) |
+
+### Pagination
+
+- Default page size: 20 users
+- Show total count and page navigation
+- Use cursor-based or offset pagination via Supabase `.range(from, to)`
+
+### Data Fetching
+
+```typescript
+const { data, count, error } = await supabase
+  .from('user_profiles')
+  .select('*', { count: 'exact' })
+  .ilike('email', `%${search}%`)  // or full_name
+  .eq('role', roleFilter)          // if filter applied
+  .eq('status', statusFilter)      // if filter applied
+  .order(sortColumn, { ascending: sortAsc })
+  .range(offset, offset + pageSize - 1);
+```
+
+---
+
+## 4.3 User Detail / Edit Page
+
+### Route: `/admin/users/[id]`
+
+Display the full profile for a single user with an editable form.
+
+### Readable Fields (Display Only)
+
+| Field | Source |
+|---|---|
+| User ID | `user_profiles.id` |
+| Email | `user_profiles.email` |
+| Created | `user_profiles.created_at` |
+| Last Updated | `user_profiles.updated_at` |
+
+### Editable Fields
+
+| Field | Input Type | Validation | Permission Required |
+|---|---|---|---|
+| Full Name | Text input | Max 255 characters | `manage_users` |
+| Role | Dropdown | Must be a valid role name | `manage_roles` |
+| Status | Dropdown | `approved`, `suspended`{{#if require_approval}}, `pending_approval`{{/if}} | `manage_users` |
+| Metadata | JSON editor (optional) | Valid JSON | `manage_users` |
+
+### Role Change Rules
+
+- Only users with `manage_roles` permission can change another user's role
+- The `{{owner_role}}` role should have special protection: warn before assigning or removing it
+- A user cannot change their own role (prevent self-demotion/promotion)
+- Available roles for the dropdown: {{#each roles}}`{{this.name}}`{{#unless @last}}, {{/unless}}{{/each}}
+
+### Save Action
+
+```typescript
+const { error } = await supabase
+  .from('user_profiles')
+  .update({
+    full_name: formData.fullName,
+    role: formData.role,
+    status: formData.status,
+    metadata: formData.metadata,
+  })
+  .eq('id', userId);
+```
+
+---
+
+## 4.4 Approval Workflow
+
+{{#if require_approval}}
+Since this project requires admin approval for new signups, implement a dedicated approval workflow.
+
+### Pending Users Queue
+
+Add a prominent section or tab on the user list page showing users with `status = 'pending_approval'`. This should be the default view when entering the admin panel if there are pending users.
+
+### Approval Actions
+
+| Action | Sets Status To | Additional Steps |
+|---|---|---|
+| Approve | `approved` | User can now access the dashboard and features per their role |
+| Reject | (delete record) | Remove the `user_profiles` row; optionally delete `auth.users` entry via admin client |
+
+### Approve User
+
+```typescript
+// Server-side API route
+const { error } = await supabase
+  .from('user_profiles')
+  .update({ status: 'approved' })
+  .eq('id', userId)
+  .eq('status', 'pending_approval');
+```
+
+### Reject User
+
+Rejecting a pending user should remove their profile and optionally their auth record:
+
+```typescript
+// Server-side with admin client (service role)
+const admin = createAdminClient();
+
+// Delete profile (cascade will not delete auth.users)
+await admin.from('user_profiles').delete().eq('id', userId);
+
+// Optionally delete auth user
+await admin.auth.admin.deleteUser(userId);
+```
+
+### Bulk Actions
+
+Support selecting multiple pending users and approving or rejecting them in batch:
+
+```typescript
+const { error } = await supabase
+  .from('user_profiles')
+  .update({ status: 'approved' })
+  .in('id', selectedUserIds)
+  .eq('status', 'pending_approval');
+```
+
+### Notifications (Optional)
+
+Consider sending a notification (email or in-app) to users when their account is approved. This can be implemented via Supabase Edge Functions or a webhook.
+{{else}}
+Since this project does not require admin approval, there is no pending-approval queue. All new users are automatically approved on signup.
+
+However, the admin can still manually change any user's status. If an admin sets a user's status to `pending_approval`, that user will be locked out until re-approved. This can be used as a manual review mechanism if needed.
+{{/if}}
+
+---
+
+## 4.5 Suspend / Unsuspend Users
+
+### Suspend
+
+Sets a user's status to `suspended`. Suspended users:
+
+- Cannot access any protected routes
+- Are signed out by middleware if they have an active session
+- See an error message if they try to log in: "Your account has been suspended."
+
+```typescript
+const { error } = await supabase
+  .from('user_profiles')
+  .update({ status: 'suspended' })
+  .eq('id', userId);
+```
+
+### Unsuspend
+
+Sets a user's status back to `approved`:
+
+```typescript
+const { error } = await supabase
+  .from('user_profiles')
+  .update({ status: 'approved' })
+  .eq('id', userId);
+```
+
+### Safety Guards
+
+- An admin cannot suspend themselves
+- The `{{owner_role}}` account should have a confirmation dialog before suspension
+- Show a clear warning about the impact of suspension
+
+---
+
+## 4.6 Permission Matrix Display
+
+Show a read-only matrix of roles and their permissions on the admin page (or as a separate admin sub-page).
+
+### Matrix Format
+
+| Permission | {{#each roles}}{{this.display_name}} | {{/each}}
+|---|{{#each roles}}---|{{/each}}
+{{#each role_permission_summary}}
+| {{this.permissions_list}} | (check per role) |
+{{/each}}
+
+### Available Permissions
+
+| Permission Key | Description |
+|---|---|
+| `manage_users` | View and edit all user profiles, approve/suspend users |
+| `manage_roles` | Modify role assignments (who can do what) |
+| `manage_prompts` | Create, edit, delete prompt templates |
+| `view_audit_log` | View LLM audit log entries and summaries |
+| `export_audit_log` | Export audit data as CSV or JSON |
+| `manage_settings` | Modify application-level settings |
+| `manage_providers` | Configure LLM provider settings and API keys |
+
+### Current Role Permissions
+
+{{#each role_permission_summary}}
+**{{this.name}}** (`{{this.display_name}}`): {{#if this.has_permissions}}{{this.permissions_list}}{{else}}no permissions assigned{{/if}}
+{{/each}}
+
+### Implementation
+
+Fetch the permission matrix by joining `roles` and `role_permissions`:
+
+```typescript
+const { data: roles } = await supabase
+  .from('roles')
+  .select('name, display_name, role_permissions(permission)')
+  .order('sort_order');
+```
+
+---
+
+## 4.7 API Endpoints
+
+All admin endpoints are server-side API routes. Every endpoint must verify the requesting user's permissions.
+
+### GET /api/admin/users
+
+List users with optional filtering, sorting, and pagination.
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `page` | integer | 1 | Page number |
+| `limit` | integer | 20 | Items per page (max 100) |
+| `search` | string | -- | Search by name or email |
+| `role` | string | -- | Filter by role name |
+| `status` | string | -- | Filter by status |
+| `sort` | string | `created_at` | Sort column |
+| `order` | string | `desc` | Sort direction: `asc` or `desc` |
+
+**Response (200):**
+
+```json
+{
+  "data": {
+    "users": [
+      {
+        "id": "uuid",
+        "email": "user@example.com",
+        "full_name": "Jane Doe",
+        "role": "{{default_role}}",
+        "status": "approved",
+        "created_at": "2025-01-01T00:00:00Z",
+        "updated_at": "2025-01-01T00:00:00Z"
+      }
+    ],
+    "total": 42,
+    "page": 1,
+    "limit": 20
+  }
+}
+```
+
+**Error responses:** 401 (not authenticated), 403 (no `manage_users` permission)
+
+### GET /api/admin/users/:id
+
+Get a single user's full profile.
+
+**Response (200):**
+
+```json
+{
+  "data": {
+    "id": "uuid",
+    "email": "user@example.com",
+    "full_name": "Jane Doe",
+    "role": "{{default_role}}",
+    "status": "approved",
+    "metadata": {},
+    "created_at": "2025-01-01T00:00:00Z",
+    "updated_at": "2025-01-01T00:00:00Z"
+  }
+}
+```
+
+**Error responses:** 401, 403, 404 (user not found)
+
+### PATCH /api/admin/users/:id
+
+Update a user's profile, role, or status.
+
+**Request body (partial, only include fields to update):**
+
+```json
+{
+  "full_name": "Updated Name",
+  "role": "{{default_role}}",
+  "status": "approved",
+  "metadata": { "notes": "VIP customer" }
+}
+```
+
+**Validation rules:**
+
+- `role` must exist in the `roles` table
+- `status` must be one of: `approved`, `suspended`{{#if require_approval}}, `pending_approval`{{/if}}
+- Changing `role` requires `manage_roles` permission (in addition to `manage_users`)
+- Admin cannot change their own role
+
+**Response (200):**
+
+```json
+{
+  "data": {
+    "id": "uuid",
+    "email": "user@example.com",
+    "full_name": "Updated Name",
+    "role": "{{default_role}}",
+    "status": "approved",
+    "updated_at": "2025-01-01T12:00:00Z"
+  }
+}
+```
+
+**Error responses:** 400 (invalid input), 401, 403, 404
+
+{{#if require_approval}}
+### POST /api/admin/users/:id/approve
+
+Approve a pending user.
+
+**Precondition:** User must have `status = 'pending_approval'`.
+
+**Response (200):**
+
+```json
+{
+  "data": { "id": "uuid", "status": "approved" }
+}
+```
+
+### POST /api/admin/users/:id/reject
+
+Reject and delete a pending user.
+
+**Precondition:** User must have `status = 'pending_approval'`.
+
+**Response (200):**
+
+```json
+{
+  "data": { "message": "User rejected and removed." }
+}
+```
+
+### POST /api/admin/users/bulk-approve
+
+Approve multiple pending users at once.
+
+**Request body:**
+
+```json
+{
+  "user_ids": ["uuid1", "uuid2", "uuid3"]
+}
+```
+
+**Response (200):**
+
+```json
+{
+  "data": { "approved_count": 3 }
+}
+```
+{{/if}}
+
+### POST /api/admin/users/:id/suspend
+
+Suspend an active user.
+
+**Precondition:** User must have `status = 'approved'`. Cannot suspend self.
+
+**Response (200):**
+
+```json
+{
+  "data": { "id": "uuid", "status": "suspended" }
+}
+```
+
+### POST /api/admin/users/:id/unsuspend
+
+Reactivate a suspended user.
+
+**Precondition:** User must have `status = 'suspended'`.
+
+**Response (200):**
+
+```json
+{
+  "data": { "id": "uuid", "status": "approved" }
+}
+```
+
+---
+
+## 4.8 Authorization Pattern
+
+Every admin API endpoint must follow this authorization pattern:
+
+```typescript
+export async function GET(request: NextRequest) {
+  // 1. Get authenticated user
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // 2. Check permission
+  const { data: hasPermission } = await supabase
+    .rpc('has_permission', {
+      check_user_id: user.id,
+      check_permission: 'manage_users'
+    });
+
+  if (!hasPermission) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  // 3. Proceed with the operation
+  // ...
+}
+```
+
+For role changes, additionally check `manage_roles`:
+
+```typescript
+if (body.role && body.role !== currentUser.role) {
+  const { data: canManageRoles } = await supabase
+    .rpc('has_permission', {
+      check_user_id: user.id,
+      check_permission: 'manage_roles'
+    });
+
+  if (!canManageRoles) {
+    return NextResponse.json(
+      { error: 'You do not have permission to change user roles.' },
+      { status: 403 }
+    );
+  }
+}
+```
+
+---
+
+## 4.9 UI Components
+
+### Admin Layout
+
+The admin section should use the same dashboard layout but with an admin-specific sidebar navigation:
+
+- **Users** -- `/admin/users` (user list and management)
+- **Permissions** -- `/admin/permissions` (read-only permission matrix)
+
+### User Status Badge
+
+Render status as a colored badge:
+
+| Status | Color | Label |
+|---|---|---|
+| `approved` | Green | Approved |
+| `pending_approval` | Yellow/Orange | Pending |
+| `suspended` | Red | Suspended |
+
+### Role Badge
+
+Render roles with distinct styling. Use the role's `display_name` as the label.
+
+### Confirmation Dialogs
+
+Show confirmation dialogs for destructive actions:
+
+- Suspending a user: "Are you sure you want to suspend {name}? They will immediately lose access."
+{{#if require_approval}}
+- Rejecting a user: "Are you sure you want to reject {name}? Their account will be permanently deleted."
+{{/if}}
+- Changing the `{{owner_role}}` role: "Are you sure? This will grant full administrative access."
+
+---
+
+## 4.10 Error Handling
+
+| Scenario | Response | User Feedback |
+|---|---|---|
+| Not authenticated | 401 | Redirect to `/login` |
+| No `manage_users` permission | 403 | "You don't have permission to access this page." |
+| User not found | 404 | "User not found." |
+| Invalid role name | 400 | "Invalid role. Must be one of: {{role_names_joined}}." |
+| Self-suspension attempt | 400 | "You cannot suspend your own account." |
+| Self-role-change attempt | 400 | "You cannot change your own role." |
+| Database error | 500 | "An unexpected error occurred. Please try again." |

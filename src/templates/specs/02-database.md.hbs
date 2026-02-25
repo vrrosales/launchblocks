@@ -1,0 +1,343 @@
+# Module 2: Database
+
+> Application: **{{app_name}}**
+> This spec covers the complete Supabase PostgreSQL schema, including tables, RLS policies, seed data, functions, and indexes.
+
+---
+
+## 2.1 Schema Overview
+
+The database consists of five tables and one view, created across four sequential migrations:
+
+| Table | Migration | Purpose |
+|---|---|---|
+| `roles` | 001 | Role definitions ({{role_names_joined}}) |
+| `role_permissions` | 001 | Permission assignments per role |
+| `user_profiles` | 002 | User data linked to `auth.users` |
+| `prompt_templates` | 003 | LLM prompt configuration and versioning |
+| `llm_audit_log` | 004 | Audit trail for every LLM API call |
+| `llm_audit_summary` (view) | 004 | Aggregated daily audit statistics |
+
+### Entity Relationships
+
+```
+auth.users (Supabase managed)
+  └── user_profiles (1:1, id = auth.users.id)
+        ├── role → roles.name (FK)
+        ├── prompt_templates.created_by (FK)
+        └── llm_audit_log.user_id (FK)
+
+roles
+  └── role_permissions (1:N, role_id → roles.id)
+
+prompt_templates
+  └── llm_audit_log.prompt_template_id (FK, nullable)
+```
+
+---
+
+## 2.2 Migration Execution
+
+The SQL migration files are located at `schemas/migrations/` and are ready to run directly in the Supabase SQL Editor. Run them in strict order:
+
+1. `001_roles_and_permissions.sql` -- roles table, permissions table, seed data, helper functions
+2. `002_users_and_profiles.sql` -- user_profiles table, auto-create trigger, indexes
+3. `003_prompt_templates.sql` -- prompt templates table, indexes
+4. `004_llm_audit_log.sql` -- audit log table, summary view, indexes
+
+**Do not skip migrations or run them out of order.** Migration 002 depends on roles from 001, and 004 depends on tables from 002 and 003.
+
+---
+
+## 2.3 Table: `roles`
+
+Stores the role definitions for the application. Roles are seeded at migration time and marked `is_system = true`.
+
+### Columns
+
+| Column | Type | Constraints | Default | Description |
+|---|---|---|---|---|
+| `id` | uuid | PK | `gen_random_uuid()` | Unique identifier |
+| `name` | text | NOT NULL, UNIQUE | -- | Machine name (e.g., `{{owner_role}}`) |
+| `display_name` | text | NOT NULL | -- | Human-readable name |
+| `description` | text | nullable | -- | Role description |
+| `is_owner_role` | boolean | NOT NULL | `false` | True for the owner role |
+| `is_default_role` | boolean | NOT NULL | `false` | True for the default signup role |
+| `is_system` | boolean | NOT NULL | `false` | System-created (not deletable) |
+| `sort_order` | integer | NOT NULL | `0` | Display ordering |
+| `created_at` | timestamptz | NOT NULL | `now()` | Creation timestamp |
+| `updated_at` | timestamptz | NOT NULL | `now()` | Last update (auto-trigger) |
+
+### RLS Policies
+
+| Policy | Operation | Who | Rule |
+|---|---|---|---|
+| `roles_select_authenticated` | SELECT | All authenticated | Always allowed |
+| `roles_modify_owner` | ALL | `{{owner_role}}` only | Checks user role = `{{owner_role}}` |
+
+### Seed Data
+
+{{#each roles}}
+- **{{this.name}}** (`{{this.display_name}}`): is_owner={{this.is_owner}}, is_default={{this.is_default}}, sort_order={{@index}}
+{{/each}}
+
+---
+
+## 2.4 Table: `role_permissions`
+
+Maps permissions to roles. A role can have zero or more permissions.
+
+### Columns
+
+| Column | Type | Constraints | Default | Description |
+|---|---|---|---|---|
+| `id` | uuid | PK | `gen_random_uuid()` | Unique identifier |
+| `role_id` | uuid | NOT NULL, FK -> roles(id) ON DELETE CASCADE | -- | Parent role |
+| `permission` | text | NOT NULL, CHECK constraint | -- | Permission key |
+| `created_at` | timestamptz | NOT NULL | `now()` | Creation timestamp |
+
+**UNIQUE constraint** on `(role_id, permission)` -- a role cannot have duplicate permissions.
+
+### Allowed Permission Values
+
+The `permission` column is constrained to these values:
+
+- `manage_users` -- view and edit user profiles, change roles, approve/suspend
+- `manage_roles` -- modify role definitions (owner-only recommended)
+- `manage_prompts` -- create, edit, delete prompt templates
+- `view_audit_log` -- read LLM audit log entries
+- `export_audit_log` -- export audit data as CSV/JSON
+- `manage_settings` -- modify application settings
+- `manage_providers` -- configure LLM provider settings
+
+### RLS Policies
+
+| Policy | Operation | Who | Rule |
+|---|---|---|---|
+| `role_permissions_select_authenticated` | SELECT | All authenticated | Always allowed |
+| `role_permissions_modify_owner` | ALL | `{{owner_role}}` only | Checks user role = `{{owner_role}}` |
+
+### Seeded Permissions
+
+{{#each role_permission_summary}}
+**{{this.name}}**: {{#if this.has_permissions}}{{this.permissions_list}}{{else}}no permissions{{/if}}
+{{/each}}
+
+---
+
+## 2.5 Table: `user_profiles`
+
+One-to-one extension of `auth.users`. Created automatically via a database trigger when a user signs up.
+
+### Columns
+
+| Column | Type | Constraints | Default | Description |
+|---|---|---|---|---|
+| `id` | uuid | PK, FK -> auth.users(id) ON DELETE CASCADE | -- | Same ID as auth.users |
+| `email` | text | NOT NULL | -- | User's email |
+| `full_name` | text | nullable | -- | Display name |
+| `avatar_url` | text | nullable | -- | Profile avatar URL |
+| `role` | text | NOT NULL, FK -> roles(name) ON UPDATE CASCADE | `'{{default_role}}'` | User's role |
+| `status` | text | NOT NULL, CHECK | `'{{approval_status}}'` | Account status |
+| `metadata` | jsonb | -- | `'{}'` | Extensible metadata |
+| `created_at` | timestamptz | NOT NULL | `now()` | Signup timestamp |
+| `updated_at` | timestamptz | NOT NULL | `now()` | Last update (auto-trigger) |
+
+### Status Values
+
+| Status | Meaning |
+|---|---|
+| `pending_approval` | Awaiting admin approval (cannot access protected features) |
+| `approved` | Active user with full access per their role |
+| `suspended` | Deactivated by admin (cannot access anything) |
+
+New signups receive status `{{approval_status}}`.{{#if require_approval}} Since approval is required, users will see a pending-approval screen until an admin approves them.{{else}} Since approval is not required, users get immediate access after signup.{{/if}}
+
+### RLS Policies
+
+| Policy | Operation | Who | Rule |
+|---|---|---|---|
+| `users_select_own` | SELECT | Authenticated | `id = auth.uid()` |
+| `users_select_admin` | SELECT | Admins | `has_permission(auth.uid(), 'manage_users')` |
+| `users_update_own` | UPDATE | Authenticated | Own row only; cannot change own `role` or `status` |
+| `users_update_admin` | UPDATE | Admins | `has_permission(auth.uid(), 'manage_users')` |
+
+**Important**: Users cannot change their own `role` or `status`. The `users_update_own` policy explicitly checks that these fields remain unchanged. Only users with `manage_users` permission can modify role and status fields.
+
+### Auto-Create Trigger
+
+The `handle_new_user()` function fires `AFTER INSERT ON auth.users` and creates a profile row:
+
+- `id` = new user's auth ID
+- `email` = from auth record
+- `full_name` = from `raw_user_meta_data.full_name` (passed during signup)
+- `role` = `'{{default_role}}'`
+- `status` = `'{{approval_status}}'`
+
+---
+
+## 2.6 Table: `prompt_templates`
+
+Stores LLM prompt configurations. Managed by users with `manage_prompts` permission.
+
+### Columns
+
+| Column | Type | Constraints | Default | Description |
+|---|---|---|---|---|
+| `id` | uuid | PK | `gen_random_uuid()` | Unique identifier |
+| `slug` | text | NOT NULL, UNIQUE | -- | URL-friendly identifier |
+| `name` | text | NOT NULL | -- | Human-readable name |
+| `description` | text | nullable | -- | Purpose description |
+| `system_prompt` | text | NOT NULL | `''` | System message for the LLM |
+| `user_prompt_template` | text | NOT NULL | `''` | User message template (supports `{variable}` placeholders) |
+| `model` | text | NOT NULL | `'gpt-4o'` | LLM model identifier |
+| `provider` | text | NOT NULL | first configured provider | LLM provider ({{#each providers_display}}{{this.id}}{{#unless @last}}, {{/unless}}{{/each}}) |
+| `temperature` | numeric(3,2) | NOT NULL, CHECK 0-2 | `0.7` | Sampling temperature |
+| `max_tokens` | integer | NOT NULL, CHECK 1-128000 | `1024` | Maximum output tokens |
+| `is_active` | boolean | NOT NULL | `true` | Whether template is usable |
+| `version` | integer | NOT NULL | `1` | Version number (increment on edit) |
+| `created_by` | uuid | FK -> user_profiles(id), nullable | -- | Creator user |
+| `created_at` | timestamptz | NOT NULL | `now()` | Creation timestamp |
+| `updated_at` | timestamptz | NOT NULL | `now()` | Last update (auto-trigger) |
+
+### RLS Policies
+
+| Policy | Operation | Who | Rule |
+|---|---|---|---|
+| `prompts_select_authenticated` | SELECT | Approved users | Active templates only, user must have `status = 'approved'` |
+| `prompts_select_admin` | SELECT | Prompt managers | All templates (including inactive), requires `manage_prompts` |
+| `prompts_modify_admin` | ALL (insert/update/delete) | Prompt managers | Requires `manage_prompts` |
+
+---
+
+## 2.7 Table: `llm_audit_log`
+
+Append-only log of every LLM API call. Never modified or deleted through the application.
+
+### Columns
+
+| Column | Type | Constraints | Default | Description |
+|---|---|---|---|---|
+| `id` | uuid | PK | `gen_random_uuid()` | Unique identifier |
+| `user_id` | uuid | NOT NULL, FK -> user_profiles(id) | -- | Who made the request |
+| `prompt_template_id` | uuid | FK -> prompt_templates(id), nullable | -- | Template used (if any) |
+| `provider` | text | NOT NULL | -- | LLM provider name |
+| `model` | text | NOT NULL | -- | Model identifier |
+| `input_tokens` | integer | NOT NULL | `0` | Tokens in the request |
+| `output_tokens` | integer | NOT NULL | `0` | Tokens in the response |
+| `total_tokens` | integer | GENERATED ALWAYS (stored) | computed | Sum of input + output |
+| `estimated_cost` | numeric(10,6) | NOT NULL | `0` | Cost estimate in USD |
+| `latency_ms` | integer | nullable | -- | Response time in milliseconds |
+| `status` | text | NOT NULL, CHECK | `'success'` | Result: `success`, `error`, or `timeout` |
+| `error_message` | text | nullable | -- | Error details (if status != success) |
+| `request_metadata` | jsonb | -- | `'{}'` | Additional context |
+| `created_at` | timestamptz | NOT NULL | `now()` | When the call was made |
+
+### RLS Policies
+
+| Policy | Operation | Who | Rule |
+|---|---|---|---|
+| `audit_select_admin` | SELECT | Audit viewers | Requires `view_audit_log` permission |
+| `audit_select_own` | SELECT | Authenticated | Own entries only (`user_id = auth.uid()`) |
+| `audit_insert_service` | INSERT | Service role | Used by server-side API routes |
+| `audit_insert_authenticated` | INSERT | Authenticated | Own entries only (`user_id = auth.uid()`) |
+
+---
+
+## 2.8 View: `llm_audit_summary`
+
+Aggregated daily statistics from the audit log. Useful for dashboards and cost monitoring.
+
+### Columns
+
+| Column | Source |
+|---|---|
+| `day` | `date_trunc('day', created_at)` |
+| `provider` | Grouped |
+| `model` | Grouped |
+| `request_count` | `COUNT(*)` |
+| `total_input_tokens` | `SUM(input_tokens)` |
+| `total_output_tokens` | `SUM(output_tokens)` |
+| `total_tokens` | `SUM(input_tokens + output_tokens)` |
+| `total_cost` | `SUM(estimated_cost)` |
+| `avg_latency_ms` | `AVG(latency_ms)::integer` |
+| `error_count` | `COUNT(*) FILTER (WHERE status = 'error')` |
+
+---
+
+## 2.9 Database Functions
+
+### `has_permission(check_user_id uuid, check_permission text) -> boolean`
+
+Returns true if the user's role has the specified permission. Joins `user_profiles` -> `roles` -> `role_permissions`. Defined as `SECURITY DEFINER` and `STABLE` for use in RLS policies.
+
+### `has_role(check_user_id uuid, check_role text) -> boolean`
+
+Returns true if the user has the specified role name. Queries `user_profiles` directly. Also `SECURITY DEFINER` and `STABLE`.
+
+### `update_updated_at() -> trigger`
+
+Trigger function that sets `NEW.updated_at = now()` before any UPDATE. Applied to `roles`, `user_profiles`, and `prompt_templates` tables.
+
+### `handle_new_user() -> trigger`
+
+Fires after `INSERT ON auth.users`. Creates a corresponding `user_profiles` row with the default role (`{{default_role}}`) and initial status (`{{approval_status}}`). Defined as `SECURITY DEFINER` with `search_path = public`.
+
+---
+
+## 2.10 Indexes
+
+All indexes created by the migrations:
+
+| Table | Index | Column(s) | Purpose |
+|---|---|---|---|
+| `user_profiles` | `idx_user_profiles_role` | `role` | Filter users by role |
+| `user_profiles` | `idx_user_profiles_status` | `status` | Filter users by status |
+| `user_profiles` | `idx_user_profiles_email` | `email` | Lookup by email |
+| `prompt_templates` | `idx_prompt_templates_slug` | `slug` | Lookup by slug |
+| `prompt_templates` | `idx_prompt_templates_provider` | `provider` | Filter by provider |
+| `prompt_templates` | `idx_prompt_templates_active` | `is_active` | Filter active templates |
+| `llm_audit_log` | `idx_llm_audit_user` | `user_id` | Audit by user |
+| `llm_audit_log` | `idx_llm_audit_provider` | `provider` | Audit by provider |
+| `llm_audit_log` | `idx_llm_audit_created` | `created_at DESC` | Recent entries first |
+| `llm_audit_log` | `idx_llm_audit_template` | `prompt_template_id` | Audit by template |
+| `llm_audit_log` | `idx_llm_audit_status` | `status` | Filter by outcome |
+
+---
+
+## 2.11 Application-Level Data Access Patterns
+
+When building the application, follow these patterns for database access:
+
+### Reading Data (Client-Side)
+
+Use the browser Supabase client with the anon key. RLS policies enforce access control automatically.
+
+```typescript
+const { data, error } = await supabase
+  .from('user_profiles')
+  .select('*')
+  .eq('id', user.id)
+  .single();
+```
+
+### Admin Operations (Server-Side)
+
+Use the server Supabase client for authenticated admin operations. RLS still applies based on the requesting user's session.
+
+```typescript
+const supabase = await createClient(); // server client with cookies
+const { data, error } = await supabase
+  .from('user_profiles')
+  .update({ role: 'new_role', status: 'approved' })
+  .eq('id', targetUserId);
+```
+
+### Privileged Operations (Service Role)
+
+Use the admin client (service role) only when RLS must be bypassed, such as inserting audit logs on behalf of users or system-level operations.
+
+```typescript
+const admin = createAdminClient();
+const { error } = await admin.from('llm_audit_log').insert({ ... });
+```
