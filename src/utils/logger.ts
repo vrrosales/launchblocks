@@ -1,4 +1,11 @@
 import chalk from "chalk";
+import type { SetupResult } from "../setup/types.js";
+
+function mcpLabel(result: SetupResult, name: "supabase" | "vercel"): string {
+  const status = result[name];
+  if (!status.installed) return "not configured";
+  return status.location === "project" ? "project-level" : "user-level";
+}
 
 export const logger = {
   banner() {
@@ -65,28 +72,57 @@ export const logger = {
     console.log(chalk.red(`  ✖ ${message}`));
   },
 
+  phase(label: string) {
+    console.log(chalk.bold.cyan(`\n  ◆ ${label}\n`));
+  },
+
+  statusLine(label: string, ok: boolean, detail?: string) {
+    const icon = ok ? chalk.green("✓") : chalk.red("✗");
+    const text = detail ? `${label} — ${detail}` : label;
+    console.log(`  ${icon} ${text}`);
+  },
+
+  link(url: string) {
+    console.log(chalk.blue.underline(`    ${url}`));
+  },
+
   fileCreated(filePath: string) {
     console.log(chalk.gray(`    ${filePath}`));
   },
 
-  summary(files: string[]) {
+  summary(files: string[], setupResult?: SetupResult) {
     console.log();
     logger.success("Launchblocks initialized successfully!\n");
     console.log(chalk.white("  Created:"));
     for (const file of files) {
       logger.fileCreated(file);
     }
+
+    if (setupResult) {
+      console.log();
+      console.log(chalk.white("  MCP Servers:"));
+      logger.statusLine(
+        `Supabase (${mcpLabel(setupResult, "supabase")})`,
+        setupResult.supabase.installed
+      );
+      logger.statusLine(
+        `Vercel (${mcpLabel(setupResult, "vercel")})`,
+        setupResult.vercel.installed
+      );
+    }
+
     console.log();
     console.log(chalk.white("  Next steps:"));
-    console.log(chalk.gray("    1. cd launchblocks"));
-    console.log(chalk.gray('    2. Open your project in your AI coding tool'));
+    console.log(chalk.gray("    1. Open your project in Claude Code"));
     console.log(
       chalk.gray(
-        '    3. Tell it: "Read AI_CONTEXT.md and implement all 7 modules"'
+        "    2. When prompted, authenticate Supabase & Vercel via OAuth"
       )
     );
     console.log(
-      chalk.gray("       (pick whatever framework you prefer)")
+      chalk.gray(
+        '    3. Tell Claude: "Read AI_CONTEXT.md and implement all 7 modules"'
+      )
     );
     console.log();
     console.log(

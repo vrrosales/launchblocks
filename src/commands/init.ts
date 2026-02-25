@@ -1,6 +1,7 @@
 import { runInterview } from "../interview/runner.js";
 import { buildConfig } from "../generator/config-writer.js";
 import { generateProject } from "../generator/index.js";
+import { runSetup } from "../setup/runner.js";
 import { logger } from "../utils/logger.js";
 
 export async function initCommand(): Promise<void> {
@@ -15,8 +16,11 @@ export async function initCommand(): Promise<void> {
     // Step 4: Generate all files
     const createdFiles = await generateProject(process.cwd(), config);
 
-    // Step 5: Show summary
-    logger.summary(createdFiles);
+    // Step 5: MCP Server Setup
+    const setupResult = await runSetup();
+
+    // Step 6: Show summary
+    logger.summary(createdFiles, setupResult);
   } catch (error) {
     if (
       error instanceof Error &&
