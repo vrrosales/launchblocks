@@ -37,6 +37,53 @@ Reference pricing for supported LLM providers. Prices are per 1M tokens unless n
 
 **Pricing page:** https://ai.google.dev/pricing
 
+## Mistral
+
+| Model | Input (per 1M) | Output (per 1M) | Context Window |
+|---|---|---|---|
+| mistral-large-latest | $2.00 | $6.00 | 128K |
+| mistral-small-latest | $0.20 | $0.60 | 128K |
+| codestral-latest | $0.30 | $0.90 | 256K |
+
+**Pricing page:** https://mistral.ai/technology/#pricing
+
+## Cohere
+
+| Model | Input (per 1M) | Output (per 1M) | Context Window |
+|---|---|---|---|
+| command-r-plus | $2.50 | $10.00 | 128K |
+| command-r | $0.15 | $0.60 | 128K |
+
+**Pricing page:** https://cohere.com/pricing
+
+## xAI
+
+| Model | Input (per 1M) | Output (per 1M) | Context Window |
+|---|---|---|---|
+| grok-2 | $2.00 | $10.00 | 128K |
+| grok-2-mini | $0.30 | $0.50 | 128K |
+
+**Pricing page:** https://docs.x.ai/docs/models
+
+## DeepSeek
+
+| Model | Input (per 1M) | Output (per 1M) | Context Window |
+|---|---|---|---|
+| deepseek-chat | $0.14 | $0.28 | 64K |
+| deepseek-reasoner | $0.55 | $2.19 | 64K |
+
+**Pricing page:** https://platform.deepseek.com/api-docs/pricing
+
+## Groq
+
+| Model | Input (per 1M) | Output (per 1M) | Context Window |
+|---|---|---|---|
+| llama-3.3-70b-versatile | $0.59 | $0.79 | 128K |
+| llama-3.1-8b-instant | $0.05 | $0.08 | 128K |
+| mixtral-8x7b-32768 | $0.24 | $0.24 | 32K |
+
+**Pricing page:** https://groq.com/pricing
+
 ## Cost Estimation Formula
 
 The LLM audit log tracks costs using this formula:

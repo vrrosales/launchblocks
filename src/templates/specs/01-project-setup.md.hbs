@@ -23,6 +23,8 @@ Use a modern React meta-framework (Next.js App Router is recommended). The proje
 | Tailwind CSS | Styling |
 | Supabase JS SDK | Database and auth |
 | `@supabase/ssr` | Server-side auth helpers |
+| Python 3.12+ | LLM microservice runtime |
+| FastAPI + Celeste AI | LLM provider abstraction |
 
 ---
 
@@ -66,10 +68,19 @@ Organize the project as follows. Adapt to your framework but keep the logical se
 │   │   └── admin.ts             # Service-role Supabase client
 │   ├── auth/
 │   │   └── middleware.ts        # Auth middleware helpers
+│   ├── llm/
+│   │   ├── service-client.ts    # HTTP client for Python LLM microservice
+│   │   ├── cost-calculator.ts   # Token cost estimation
+│   │   └── types.ts             # Shared LLM types
 │   └── utils.ts                 # Shared utilities
 ├── components/
 │   ├── ui/                      # Reusable UI primitives
 │   └── layout/                  # Layout components (sidebar, header)
+├── services/
+│   └── llm/                     # Python LLM microservice (FastAPI + Celeste)
+│       ├── main.py
+│       ├── requirements.txt
+│       └── .env
 ├── middleware.ts                 # Next.js middleware (route protection)
 ├── launchblocks/                # Launchblocks-generated files (do not edit)
 │   ├── LaunchBlocks_implementation.md
@@ -95,16 +106,10 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
 # LLM Provider API Keys
 {{#each providers_display}}
-{{#if (eq this.id "openai")}}
-OPENAI_API_KEY=sk-your-openai-key
-{{/if}}
-{{#if (eq this.id "anthropic")}}
-ANTHROPIC_API_KEY=sk-ant-your-anthropic-key
-{{/if}}
-{{#if (eq this.id "google")}}
-GOOGLE_AI_API_KEY=your-google-ai-key
-{{/if}}
+{{this.env_var}}={{this.env_placeholder}}
 {{/each}}
+# LLM Service
+LLM_SERVICE_URL=http://localhost:8000
 
 # App Configuration
 NEXT_PUBLIC_APP_NAME={{app_name}}
@@ -248,6 +253,21 @@ Set all variables from `.env.local` in Vercel Dashboard under Settings > Environ
 | Output Directory | `.next` (auto-detected) |
 | Install Command | `npm install` (auto-detected) |
 | Node.js Version | 18.x or 20.x |
+
+### Python LLM Microservice Deployment
+
+The Python LLM microservice (`services/llm/`) runs separately from the Next.js app. Deploy it to a Python-friendly platform:
+
+| Platform | Notes |
+|---|---|
+| Railway | Easiest — auto-detects Python, set env vars in dashboard |
+| Fly.io | Good for low-latency, supports regions |
+| Google Cloud Run | Serverless, scales to zero |
+| Render | Simple deploy from Git |
+
+After deploying, set `LLM_SERVICE_URL` in the Next.js environment to point to the deployed Python service URL (e.g., `https://your-llm-service.up.railway.app`).
+
+For local development, run the Python service with `uvicorn main:app --reload` from `services/llm/` and use `LLM_SERVICE_URL=http://localhost:8000`.
 
 ---
 

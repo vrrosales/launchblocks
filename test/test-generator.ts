@@ -165,17 +165,63 @@ async function main() {
     requireApproval: false,
     adminRoles: ["owner", "editor"],
     llmAccessRoles: ["owner", "editor"],
-    llmProviders: ["openai", "anthropic"],
+    llmProviders: ["openai", "anthropic", "mistral"],
     aiTool: "all",
   };
 
   const test2 = await runTest("custom", customAnswers);
 
+  // Test 3: All providers
+  const allProvidersAnswers: InterviewAnswers = {
+    appName: "All Providers App",
+    roles: DEFAULT_ROLES,
+    ownerRole: "super_admin",
+    defaultRole: "user",
+    requireApproval: false,
+    adminRoles: ["super_admin", "admin"],
+    llmAccessRoles: ["super_admin", "admin", "user"],
+    llmProviders: ["openai", "anthropic", "google", "mistral", "cohere", "xai", "deepseek", "groq"],
+    aiTool: "claude",
+  };
+
+  const test3 = await runTest("all-providers", allProvidersAnswers);
+
+  // Extra verification for test 3
+  let test3Extra = true;
+  const allProvDir = path.join(TEST_DIR, "all-providers", "launchblocks");
+
+  // Verify sample-env.md contains all provider env vars
+  const sampleEnv = await fs.readFile(path.join(allProvDir, "schemas/sample-env.md"), "utf-8");
+  const expectedEnvVars = [
+    "OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GOOGLE_AI_API_KEY",
+    "MISTRAL_API_KEY", "CO_API_KEY", "XAI_API_KEY",
+    "DEEPSEEK_API_KEY", "GROQ_API_KEY", "LLM_SERVICE_URL",
+  ];
+  for (const envVar of expectedEnvVars) {
+    if (!sampleEnv.includes(envVar)) {
+      console.log(`  FAIL: sample-env.md missing ${envVar}`);
+      test3Extra = false;
+    }
+  }
+
+  // Verify LaunchBlocks_implementation.md contains Celeste and Python references
+  const implMd = await fs.readFile(path.join(allProvDir, "LaunchBlocks_implementation.md"), "utf-8");
+  for (const keyword of ["Celeste", "Python", "FastAPI", "services/llm/"]) {
+    if (!implMd.includes(keyword)) {
+      console.log(`  FAIL: LaunchBlocks_implementation.md missing "${keyword}"`);
+      test3Extra = false;
+    }
+  }
+
+  if (test3Extra) {
+    console.log("  Extra checks: all passed");
+  }
+
   // Cleanup
   // await fs.remove(TEST_DIR);
 
   console.log("\n============================");
-  if (test1 && test2) {
+  if (test1 && test2 && test3 && test3Extra) {
     console.log("ALL TESTS PASSED");
     process.exit(0);
   } else {

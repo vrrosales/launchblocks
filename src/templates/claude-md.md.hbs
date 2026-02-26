@@ -10,7 +10,7 @@ Implement all 7 modules in the order specified (Module 1 through Module 7):
 2. **Database** — Run the SQL migrations in `schemas/migrations/` in Supabase
 3. **Authentication** — Signup, login, logout, password reset using Supabase Auth
 4. **User Management** — Profile CRUD, role management, admin approval{{#if require_approval}} (approval required for new signups){{/if}}
-5. **LLM Gateway** — Provider abstraction for {{llm_access_roles_joined}}
+5. **LLM Gateway** — Python microservice (Celeste AI SDK) + Next.js proxy for {{llm_access_roles_joined}}
 6. **Prompt Management** — CRUD for prompt templates, versioning
 7. **LLM Audit** — Logging every LLM call with token counts and cost estimates
 

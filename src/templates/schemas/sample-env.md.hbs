@@ -10,16 +10,10 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
 # LLM Providers
 {{#each providers_display}}
-{{#if (eq this.id "openai")}}
-OPENAI_API_KEY=sk-your-openai-key
-{{/if}}
-{{#if (eq this.id "anthropic")}}
-ANTHROPIC_API_KEY=sk-ant-your-anthropic-key
-{{/if}}
-{{#if (eq this.id "google")}}
-GOOGLE_AI_API_KEY=your-google-ai-key
-{{/if}}
+{{this.env_var}}={{this.env_placeholder}}
 {{/each}}
+# LLM Service
+LLM_SERVICE_URL=http://localhost:8000
 
 # App
 NEXT_PUBLIC_APP_NAME={{app_name}}
@@ -34,13 +28,6 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 | `SUPABASE_ANON_KEY` | Supabase Dashboard → Settings → API → `anon` `public` key |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase Dashboard → Settings → API → `service_role` key (keep secret!) |
 {{#each providers_display}}
-{{#if (eq this.id "openai")}}
-| `OPENAI_API_KEY` | https://platform.openai.com/api-keys |
-{{/if}}
-{{#if (eq this.id "anthropic")}}
-| `ANTHROPIC_API_KEY` | https://console.anthropic.com/settings/keys |
-{{/if}}
-{{#if (eq this.id "google")}}
-| `GOOGLE_AI_API_KEY` | https://aistudio.google.com/app/apikey |
-{{/if}}
+| `{{this.env_var}}` | {{this.env_docs_url}} |
 {{/each}}
+| `LLM_SERVICE_URL` | URL of your Python LLM microservice (default: `http://localhost:8000`) |

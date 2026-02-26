@@ -1,7 +1,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import Handlebars from "handlebars";
-import type { VibekitConfig } from "./config-writer.js";
+import type { LaunchblocksConfig } from "./config-writer.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -45,7 +45,7 @@ export function registerHelpers(): void {
 }
 
 export function buildTemplateContext(
-  config: VibekitConfig
+  config: LaunchblocksConfig
 ): Record<string, unknown> {
   const ownerRoleObj = config.roles.find((r) => r.is_owner);
   const defaultRoleObj = config.roles.find((r) => r.is_default);
@@ -71,11 +71,31 @@ export function buildTemplateContext(
     openai: "OpenAI",
     anthropic: "Anthropic",
     google: "Google",
+    mistral: "Mistral",
+    cohere: "Cohere",
+    xai: "xAI",
+    deepseek: "DeepSeek",
+    groq: "Groq",
+  };
+
+  // Provider environment variable metadata
+  const providerEnvVars: Record<string, { envVar: string; placeholder: string; docsUrl: string }> = {
+    openai: { envVar: "OPENAI_API_KEY", placeholder: "sk-your-openai-key", docsUrl: "https://platform.openai.com/api-keys" },
+    anthropic: { envVar: "ANTHROPIC_API_KEY", placeholder: "sk-ant-your-anthropic-key", docsUrl: "https://console.anthropic.com/settings/keys" },
+    google: { envVar: "GOOGLE_AI_API_KEY", placeholder: "your-google-ai-key", docsUrl: "https://aistudio.google.com/app/apikey" },
+    mistral: { envVar: "MISTRAL_API_KEY", placeholder: "your-mistral-key", docsUrl: "https://console.mistral.ai/api-keys" },
+    cohere: { envVar: "CO_API_KEY", placeholder: "your-cohere-key", docsUrl: "https://dashboard.cohere.com/api-keys" },
+    xai: { envVar: "XAI_API_KEY", placeholder: "your-xai-key", docsUrl: "https://console.x.ai" },
+    deepseek: { envVar: "DEEPSEEK_API_KEY", placeholder: "your-deepseek-key", docsUrl: "https://platform.deepseek.com/api_keys" },
+    groq: { envVar: "GROQ_API_KEY", placeholder: "your-groq-key", docsUrl: "https://console.groq.com/keys" },
   };
 
   const providersDisplay = config.llm_providers.map((p) => ({
     id: p,
     name: providerNames[p] || p,
+    env_var: providerEnvVars[p]?.envVar || `${p.toUpperCase()}_API_KEY`,
+    env_placeholder: providerEnvVars[p]?.placeholder || `your-${p}-key`,
+    env_docs_url: providerEnvVars[p]?.docsUrl || "",
   }));
 
   return {

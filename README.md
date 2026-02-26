@@ -8,7 +8,7 @@ Instead of writing boilerplate or starting from scratch, Launchblocks generates 
 
 - **User Authentication** (signup, login, password reset via Supabase Auth)
 - **Role-Based Access Control** (custom roles, granular permissions, admin panel)
-- **LLM Gateway** (provider-abstracted AI integration with OpenAI, Anthropic, Google)
+- **LLM Gateway** (Python microservice with Celeste AI SDK — supports OpenAI, Anthropic, Google, Mistral, Cohere, xAI, DeepSeek, Groq)
 - **Prompt Management** (CRUD for prompt templates with versioning and variable interpolation)
 - **LLM Audit Trail** (logging every AI call with token counts, cost estimates, and latency)
 - **Signup Approval Workflow** (optional admin approval for new users)
@@ -39,7 +39,7 @@ Running `launchblocks init` walks you through 8 steps:
 | 3 | **Signup Behavior** | Whether new users require admin approval |
 | 4 | **Admin Panel Access** | Which roles can access the admin panel |
 | 5 | **LLM Access** | Which roles can use AI/LLM features |
-| 6 | **LLM Providers** | Choose from OpenAI, Anthropic, and/or Google |
+| 6 | **LLM Providers** | Choose from OpenAI, Anthropic, Google, Mistral, Cohere, xAI, DeepSeek, Groq |
 | 7 | **App Info** | Your application name |
 | 8 | **AI Tool** | Which AI coding tool you'll use (Claude Code, Cursor, Codex, Gemini) |
 
@@ -87,7 +87,8 @@ The AI tool will use the generated specs and SQL migrations to build a complete 
 | Hosting | Vercel |
 | Database & Auth | Supabase (PostgreSQL + Supabase Auth) |
 | Styling | Tailwind CSS + shadcn/ui |
-| LLM Providers | OpenAI, Anthropic, Google (configurable) |
+| LLM Service | Python 3.12+ / FastAPI + Celeste AI SDK |
+| LLM Providers | OpenAI, Anthropic, Google, Mistral, Cohere, xAI, DeepSeek, Groq (configurable) |
 | Validation | Zod |
 
 ## Features

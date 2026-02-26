@@ -35,9 +35,8 @@
 | Auth | Supabase Auth | Email/password, OAuth, magic link |
 | Styling | Tailwind CSS + shadcn/ui | Utility-first CSS, accessible components |
 | State | React Server Components + `nuqs` | Server-first state, URL search params |
-{{#each providers_display}}
-| LLM | {{this.name}} | AI/LLM provider (`{{this.id}}`) |
-{{/each}}
+| Python Microservice | Python 3.12+ / FastAPI | LLM call processing via Celeste |
+| LLM SDK | Celeste AI (`celeste-ai`) | Unified SDK for {{#each providers_display}}{{this.name}}{{#unless @last}}, {{/unless}}{{/each}} |
 | Validation | Zod | Runtime schema validation |
 | ORM | Supabase JS Client | Type-safe database queries |
 
@@ -51,16 +50,10 @@ SUPABASE_SERVICE_ROLE_KEY=<your-service-role-key>
 
 # LLM Providers
 {{#each providers_display}}
-{{#if (eq this.id "openai")}}
-OPENAI_API_KEY=<your-openai-key>
-{{/if}}
-{{#if (eq this.id "anthropic")}}
-ANTHROPIC_API_KEY=<your-anthropic-key>
-{{/if}}
-{{#if (eq this.id "google")}}
-GOOGLE_AI_API_KEY=<your-google-ai-key>
-{{/if}}
+{{this.env_var}}=<{{this.env_placeholder}}>
 {{/each}}
+# LLM Service
+LLM_SERVICE_URL=http://localhost:8000
 
 # App
 NEXT_PUBLIC_APP_NAME={{app_name}}
@@ -74,53 +67,51 @@ See `schemas/sample-env.md` for where to find each value.
 ## 3. Architecture Overview
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                     FRONTEND                            │
-│              Next.js App Router (Vercel)                 │
-│                                                         │
-│  ┌──────────┐  ┌──────────┐  ┌────────────────────┐    │
-│  │  Auth     │  │  Admin   │  │  LLM Chat /        │    │
-│  │  Pages    │  │  Panel   │  │  Prompt Playground  │    │
-│  └────┬─────┘  └────┬─────┘  └────────┬───────────┘    │
-│       │              │                 │                 │
-└───────┼──────────────┼─────────────────┼────────────────┘
-        │              │                 │
-        ▼              ▼                 ▼
-┌─────────────────────────────────────────────────────────┐
-│                    API LAYER                             │
-│             Next.js Route Handlers                       │
-│                                                         │
-│  ┌──────────┐  ┌──────────┐  ┌────────────────────┐    │
-│  │ /api/auth │  │/api/admin│  │  /api/llm/gateway   │    │
-│  └────┬─────┘  └────┬─────┘  └────────┬───────────┘    │
-│       │              │                 │                 │
+┌──────────────────────────────────────────────────────────┐
+│               Next.js App (Vercel)                        │
+│                                                          │
+│  ┌──────────┐  ┌──────────┐  ┌────────────────────┐     │
+│  │  Auth     │  │  Admin   │  │  LLM Chat /        │     │
+│  │  Pages    │  │  Panel   │  │  Prompt Playground  │     │
+│  └────┬─────┘  └────┬─────┘  └────────┬───────────┘     │
+│       │              │                 │                  │
+│       ▼              ▼                 ▼                  │
+│  ┌──────────┐  ┌──────────┐  ┌────────────────────┐     │
+│  │ /api/auth │  │/api/admin│  │ /api/llm/chat       │     │
+│  └────┬─────┘  └────┬─────┘  │  ├─ Auth check      │     │
+│       │              │        │  ├─ Template resolve │     │
+│       │              │        │  ├─ Variable interp. │     │
+│       │              │        │  ├─ Proxy to Python  │     │
+│       │              │        │  └─ Audit logging    │     │
+│       │              │        └────────┬───────────┘     │
 └───────┼──────────────┼─────────────────┼────────────────┘
         │              │                 │
         ▼              ▼                 ▼
 ┌──────────────┐ ┌──────────────┐ ┌───────────────────────┐
-│              │ │              │ │    LLM GATEWAY          │
-│   Supabase   │ │   Supabase   │ │                         │
-│     Auth     │ │   Database   │ │  ┌─────────────────┐    │
-│              │ │  (Postgres)  │ │  │ Provider Router  │    │
-│  - Signup    │ │              │ │  └────────┬────────┘    │
-│  - Login     │ │  - roles     │ │           │             │
-│  - OAuth     │ │  - profiles  │ │    ┌──────┼──────┐      │
-│  - Reset     │ │  - prompts   │ │    ▼      ▼      ▼      │
-│              │ │  - audit_log │ │  [{{#each providers_display}}{{this.name}}{{#unless @last}}, {{/unless}}{{/each}}]  │
+│   Supabase   │ │   Supabase   │ │ Python Microservice    │
+│     Auth     │ │   Database   │ │ (FastAPI + Celeste AI) │
+│              │ │  (Postgres)  │ │                         │
+│  - Signup    │ │              │ │  POST /generate         │
+│  - Login     │ │  - roles     │ │  POST /stream           │
+│  - OAuth     │ │  - profiles  │ │  GET  /health           │
+│  - Reset     │ │  - prompts   │ │                         │
+│              │ │  - audit_log │ │  Celeste AI SDK →       │
+│              │ │              │ │  [{{#each providers_display}}{{this.name}}{{#unless @last}}, {{/unless}}{{/each}}] │
 └──────────────┘ └──────────────┘ └───────────────────────┘
 ```
 
 ### Request Flow: LLM Gateway
 
-1. Client sends POST to `/api/llm/gateway` with `{ prompt_slug, variables }`
-2. Middleware validates session via Supabase Auth
-3. API checks user status is `approved` and role has LLM access
-4. Loads prompt template from `prompt_templates` table by slug
-5. Interpolates variables into the prompt template
-6. Routes to the correct provider ({{#each providers_display}}{{this.id}}{{#unless @last}}, {{/unless}}{{/each}})
-7. Calls provider API, streams or awaits response
-8. Logs request to `llm_audit_log` (tokens, cost, latency, status)
-9. Returns response to client
+1. Client sends POST to `/api/llm/chat` with `{ template_slug, variables }` or ad-hoc messages
+2. Next.js middleware validates session via Supabase Auth
+3. Next.js API checks user status is `approved` and role has LLM access
+4. Next.js loads prompt template from `prompt_templates` table by slug
+5. Next.js interpolates variables into the prompt template
+6. Next.js forwards the resolved prompt to the Python microservice (`POST /generate` or `POST /stream`)
+7. Python service calls the provider via Celeste AI SDK ({{#each providers_display}}{{this.id}}{{#unless @last}}, {{/unless}}{{/each}})
+8. Python service returns the response (or streams chunks) to Next.js
+9. Next.js writes audit entry to `llm_audit_log` (tokens, cost, latency, status)
+10. Next.js returns the response to the client
 
 ---
 
@@ -195,17 +186,8 @@ Scaffold the Next.js project, configure Supabase client, set up environment vari
    - `@supabase/supabase-js` and `@supabase/ssr` for auth/database
    - `zod` for validation
    - `shadcn/ui` for UI components (run `npx shadcn@latest init`)
-{{#each providers_display}}
-{{#if (eq this.id "openai")}}
-   - `openai` for OpenAI SDK
-{{/if}}
-{{#if (eq this.id "anthropic")}}
-   - `@anthropic-ai/sdk` for Anthropic SDK
-{{/if}}
-{{#if (eq this.id "google")}}
-   - `@google/generative-ai` for Google AI SDK
-{{/if}}
-{{/each}}
+   - Note: Individual LLM provider SDKs are **not** needed in the Next.js app. LLM calls are handled by the Python microservice (Celeste AI SDK).
+   - Set up `services/llm/` Python directory with `celeste-ai`, `fastapi`, `uvicorn` dependencies
 3. **Create Supabase client utilities:**
    - `src/lib/supabase/client.ts` — browser client
    - `src/lib/supabase/server.ts` — server client (cookies-based)
@@ -443,7 +425,7 @@ Every admin API route must:
 ## 10. Module 5: LLM Gateway
 
 ### Goal
-Build a provider-abstracted LLM gateway that routes requests to the correct provider, enforces access control, and logs every call.
+Build a two-service LLM gateway: a **Python microservice** (FastAPI + Celeste AI SDK) that handles all LLM provider calls, and a **Next.js proxy route** that handles auth, template resolution, and audit logging.
 
 ### Supported Providers
 
@@ -451,17 +433,46 @@ Build a provider-abstracted LLM gateway that routes requests to the correct prov
 - **{{this.name}}** (`{{this.id}}`)
 {{/each}}
 
+### Two-Service Architecture
+
+```
+Next.js (Vercel)                     Python Microservice
+├── /api/llm/chat                    ├── FastAPI
+│   ├── Auth check                   ├── Celeste AI SDK
+│   ├── Template resolution          ├── POST /generate
+│   ├── Variable interpolation       ├── POST /stream
+│   ├── Forward to Python svc ──→    └── GET /health
+│   ├── Receive response
+│   └── Write audit log
+```
+
+- **Next.js** owns auth, Supabase access (template DB, audit log), and orchestration
+- **Python service** owns LLM calls via Celeste — no direct DB access needed
+
 ### API Route
 
-**POST `/api/llm/gateway`**
+**POST `/api/llm/chat`**
 
-Request body:
+Request body (template-based):
 ```json
 {
-  "prompt_slug": "my-prompt-template",
-  "variables": {
-    "user_input": "Hello, world!"
-  },
+  "template_slug": "summarize-article",
+  "variables": { "article_text": "...", "max_length": "3 sentences" },
+  "stream": false
+}
+```
+
+Request body (ad-hoc):
+```json
+{
+  "messages": [
+    { "role": "system", "content": "You are a helpful assistant." },
+    { "role": "user", "content": "Explain quantum computing." }
+  ],
+  "provider": "{{providers_display.[0].id}}",
+  "model": "gpt-4o",
+  "temperature": 0.7,
+  "max_tokens": 1024,
   "stream": false
 }
 ```
@@ -469,76 +480,53 @@ Request body:
 Success response:
 ```json
 {
-  "success": true,
-  "data": {
-    "content": "The LLM response text...",
-    "provider": "{{llm_providers.[0]}}",
-    "model": "gpt-4o",
-    "usage": {
-      "input_tokens": 150,
-      "output_tokens": 320,
-      "total_tokens": 470
-    },
-    "latency_ms": 1230
-  }
+  "content": "The LLM response text...",
+  "provider": "{{llm_providers.[0]}}",
+  "model": "gpt-4o",
+  "usage": { "input_tokens": 150, "output_tokens": 320, "total_tokens": 470 },
+  "estimated_cost": 0.003215,
+  "latency_ms": 1230,
+  "audit_id": "uuid"
 }
 ```
 
-### Gateway Implementation
+### Python Microservice
+
+The Python service exposes three endpoints. It uses the Celeste AI SDK to call any configured provider.
+
+- **POST `/generate`** — Non-streaming LLM call. Accepts `{ provider, model, messages, temperature, max_tokens }`, returns `{ content, usage, latency_ms }`.
+- **POST `/stream`** — Streaming LLM call (SSE). Same request shape, returns `text/event-stream` with content chunks.
+- **GET `/health`** — Returns `{ "status": "ok" }`.
+
+> **Celeste SDK version note:** Pin `celeste-ai>=0.10,<1.0` in `requirements.txt`. Refer to the Celeste AI SDK documentation for current API methods — do not hardcode SDK internals.
+
+### File Structure
 
 ```
+services/llm/
+  main.py                          # FastAPI app with /generate, /stream, /health
+  requirements.txt                 # celeste-ai, fastapi, uvicorn
+
 src/lib/llm/
-  gateway.ts            # Main gateway function
-  providers/
-    index.ts            # Provider registry
-{{#each providers_display}}
-{{#if (eq this.id "openai")}}
-    openai.ts           # OpenAI provider adapter
-{{/if}}
-{{#if (eq this.id "anthropic")}}
-    anthropic.ts        # Anthropic provider adapter
-{{/if}}
-{{#if (eq this.id "google")}}
-    google.ts           # Google AI provider adapter
-{{/if}}
-{{/each}}
-  types.ts              # Shared types
-  cost-calculator.ts    # Token cost estimation
-```
+  service-client.ts                # HTTP client for the Python microservice
+  cost-calculator.ts               # Token cost estimation
+  types.ts                         # Shared TypeScript types
 
-### Provider Interface
-
-Each provider adapter must implement:
-
-```typescript
-interface LLMProvider {
-  id: string;
-  call(params: {
-    model: string;
-    systemPrompt: string;
-    userPrompt: string;
-    temperature: number;
-    maxTokens: number;
-  }): Promise<{
-    content: string;
-    inputTokens: number;
-    outputTokens: number;
-    latencyMs: number;
-  }>;
-}
+src/app/api/llm/chat/
+  route.ts                         # POST handler (auth → template → proxy → audit)
 ```
 
 ### Access Control
 
-The gateway must enforce:
+The Next.js route must enforce:
 1. User is authenticated and `approved`
 2. User's role is in the LLM access list: {{llm_access_roles_joined}}
-3. The prompt template exists and `is_active = true`
+3. The prompt template exists and `is_active = true` (for template-based calls)
 4. Return 403 with a clear error if any check fails
 
 ### Audit Logging
 
-After every LLM call (success or failure), insert a row into `llm_audit_log`:
+After every LLM call (success or failure), the **Next.js route** inserts a row into `llm_audit_log`:
 - Use the **service role** client for inserts (bypasses RLS)
 - Calculate `estimated_cost` using the pricing formula in `references/llm-pricing-table.md`
 - Record `latency_ms` from request start to response complete
@@ -728,7 +716,7 @@ User Management    LLM Gateway
 2. **Module 2 — Database** — Depends on Module 1 (needs Supabase config). Run all 4 SQL migrations in order.
 3. **Module 3 — Authentication** — Depends on Modules 1+2. Build auth UI and callback routes.
 4. **Module 4 — User Management** — Depends on Module 3. Build admin panel for user CRUD.
-5. **Module 5 — LLM Gateway** — Depends on Module 3. Build provider adapters and gateway route.
+5. **Module 5 — LLM Gateway** — Depends on Module 3. Set up the Python LLM microservice (FastAPI + Celeste) and the Next.js proxy route.
 6. **Module 6 — Prompt Management** — Depends on Module 5. Build prompt CRUD and test runner.
 7. **Module 7 — LLM Audit Trail** — Depends on Module 5. Build audit dashboard and export.
 
@@ -740,7 +728,7 @@ After each module, verify:
 - [ ] **Module 2:** All 4 migrations run without errors, `roles` table has {{role_names_joined}}
 - [ ] **Module 3:** Can sign up, log in, log out, reset password{{#if require_approval}}, pending user sees `/pending`{{/if}}
 - [ ] **Module 4:** Admin can list users, change roles{{#if require_approval}}, approve pending users{{/if}}, suspend/reactivate
-- [ ] **Module 5:** Gateway accepts prompt slug + variables, calls provider, returns response, logs to audit
+- [ ] **Module 5:** Python microservice runs (`GET /health` returns ok), Next.js proxy calls provider via Celeste, returns response, logs to audit
 - [ ] **Module 6:** Can create/edit/delete prompts, test runner works, versioning increments
 - [ ] **Module 7:** Audit dashboard shows data, filters work, CSV export downloads
 
