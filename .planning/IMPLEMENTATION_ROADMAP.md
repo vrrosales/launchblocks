@@ -35,10 +35,11 @@ Phase 8: Branding & Distribution ───────(independent)
 
 ---
 
-## Phase 1: CLI Flags & Automation
+## Phase 1: CLI Flags & Automation ✅ COMPLETED
 
 **Gaps addressed:** #9 (CLI flags), #1 (`--defaults`), #3 (`--dry-run`)
 **Estimated scope:** `bin/launchblocks.ts`, `src/commands/init.ts`, `src/interview/runner.ts`
+**Completed:** 2026-02-27
 
 ### Problem
 
@@ -126,10 +127,11 @@ Simple boolean flag in `initCommand` that skips the `runSetup()` call entirely.
 
 ---
 
-## Phase 2: Config Reuse
+## Phase 2: Config Reuse ✅ COMPLETED
 
 **Gaps addressed:** #4 (config file reuse)
 **Estimated scope:** New file `src/generator/config-reader.ts`, changes to `init.ts`
+**Completed:** 2026-02-27
 
 ### Problem
 
@@ -585,10 +587,11 @@ All `@clack/prompts` calls can return a cancel symbol. Wrap every prompt with `i
 
 ---
 
-## Phase 6: Incremental Commands
+## Phase 6: Incremental Commands ✅ COMPLETED
 
 **Gaps addressed:** #6 (`launchblocks add` command)
 **Depends on:** Phase 2 (config reuse — needs config reader)
+**Completed:** 2026-02-27
 **Estimated scope:** New command file, config updater, selective regeneration
 
 ### Problem

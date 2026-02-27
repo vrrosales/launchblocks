@@ -144,7 +144,6 @@ async function generateFromConfig(
   configPath: string,
   opts: CLIOptions
 ): Promise<void> {
-  intro("Launchblocks — Spec-Driven Development for AI Apps");
   logger.step(`Reading config from ${configPath}...`);
 
   const config = await readConfig(configPath);
@@ -177,6 +176,7 @@ export async function initCommand(opts: CLIOptions): Promise<void> {
   try {
     // --config: regenerate from an explicit config file
     if (opts.config) {
+      intro("Launchblocks — Spec-Driven Development for AI Apps");
       await generateFromConfig(opts.config, opts);
       return;
     }

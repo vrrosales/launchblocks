@@ -42,7 +42,7 @@ export async function askRoles(): Promise<{
     message:
       'Enter your roles (comma-separated, e.g. "owner, editor, viewer"):',
     validate(value) {
-      const result = validateRoles(value);
+      const result = validateRoles(value ?? "");
       if (result !== true) return result;
     },
   });

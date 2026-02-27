@@ -67,6 +67,7 @@ CREATE POLICY "subscriptions_select_admin" ON public.user_subscriptions
 -- Service role manages subscriptions (via webhook handlers)
 CREATE POLICY "subscriptions_manage_service" ON public.user_subscriptions
   FOR ALL TO service_role
+  USING (true)
   WITH CHECK (true);
 
 -- Allow authenticated users to create their own subscription (initial free plan)
@@ -93,6 +94,11 @@ ALTER TABLE public.billing_events ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "billing_events_insert_service" ON public.billing_events
   FOR INSERT TO service_role
   WITH CHECK (true);
+
+-- Users can view their own billing events
+CREATE POLICY "billing_events_select_own" ON public.billing_events
+  FOR SELECT TO authenticated
+  USING (user_id = auth.uid());
 
 -- Admins with manage_settings can view billing events
 CREATE POLICY "billing_events_select_admin" ON public.billing_events
@@ -126,6 +132,7 @@ CREATE POLICY "usage_select_own" ON public.usage_records
 -- Service role manages usage records
 CREATE POLICY "usage_manage_service" ON public.usage_records
   FOR ALL TO service_role
+  USING (true)
   WITH CHECK (true);
 
 -- Admins can view all usage

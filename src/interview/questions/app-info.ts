@@ -7,7 +7,7 @@ export async function askAppInfo(): Promise<string> {
     defaultValue: "My App",
     placeholder: "My App",
     validate(value) {
-      const result = validateAppName(value);
+      const result = validateAppName(value ?? "");
       if (result !== true) return result;
     },
   });

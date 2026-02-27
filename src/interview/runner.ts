@@ -52,6 +52,14 @@ export async function runInterview(
     roles = result.roles;
     ownerRole = result.ownerRole;
     defaultRole = result.defaultRole;
+  } else {
+    // When roles are prefilled, derive owner/default from role config if not explicitly set
+    if (!ownerRole) {
+      ownerRole = roles.find((r) => r.is_owner_role)?.name ?? roles[0].name;
+    }
+    if (!defaultRole) {
+      defaultRole = roles.find((r) => r.is_default_role)?.name ?? roles[roles.length - 1].name;
+    }
   }
 
   // Q3: Permissions (only for custom roles — defaults come pre-configured)
@@ -108,8 +116,8 @@ export async function runInterview(
   return {
     appName,
     roles,
-    ownerRole: ownerRole!,
-    defaultRole: defaultRole!,
+    ownerRole: ownerRole as string,
+    defaultRole: defaultRole as string,
     requireApproval,
     adminRoles,
     llmAccessRoles,

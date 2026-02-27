@@ -1,6 +1,7 @@
 {
   "name": "create-launchblocks",
   "version": "0.1.0",
+  "type": "module",
   "description": "Create a new Launchblocks project — Spec-Driven Development (SDD) for AI-powered apps",
   "bin": {
     "create-launchblocks": "./index.js"

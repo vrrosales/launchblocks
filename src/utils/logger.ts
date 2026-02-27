@@ -65,7 +65,7 @@ function nextSteps(aiTool: AiTool, includeBilling: boolean): string[] {
 // Static map of file descriptions for the annotated tree
 const FILE_DESCRIPTIONS: Record<string, string> = {
   "launchblocks.config.yaml": "Your project configuration",
-  "LaunchBlocks_implementation.md": "Master specification (all 7 modules)",
+  "LaunchBlocks_implementation.md": "Master specification (all modules)",
   "CLAUDE.md": "AI context for Claude Code",
   ".cursorrules": "AI context for Cursor",
   "AGENTS.md": "AI context for Codex",
@@ -296,7 +296,7 @@ export const logger = {
 
     // Next steps using @clack/prompts note()
     const steps = nextSteps(aiTool, includeBilling);
-    const stepsContent = steps.map((s) => stripAnsi(s)).join("\n");
+    const stepsContent = steps.join("\n");
     note(stepsContent, "Next steps");
 
     outro("Project generated! See next steps above.");
