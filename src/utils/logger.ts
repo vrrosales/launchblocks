@@ -19,33 +19,212 @@ function nextSteps(aiTool: AiTool): string[] {
   switch (aiTool) {
     case "claude":
       return [
-        "1. Open your project in Claude Code",
-        "2. When prompted, authenticate Supabase & Vercel via OAuth",
-        '3. Tell Claude: "Read LaunchBlocks_implementation.md and implement all 7 modules"',
+        `1. ${chalk.bold("cd launchblocks")}`,
+        `2. Open your project in ${chalk.cyan("Claude Code")}`,
+        `3. Tell Claude:`,
+        ``,
+        `   ${chalk.cyan.bold('"Read LaunchBlocks_implementation.md and implement all 7 modules"')}`,
       ];
     case "cursor":
       return [
-        "1. Open your project in Cursor",
-        "2. When prompted, authenticate MCP servers",
-        '3. In Composer, tell it: "Read LaunchBlocks_implementation.md and implement all 7 modules"',
+        `1. ${chalk.bold("cd launchblocks")}`,
+        `2. Open your project in ${chalk.cyan("Cursor")}`,
+        `3. In Composer, tell it:`,
+        ``,
+        `   ${chalk.cyan.bold('"Read LaunchBlocks_implementation.md and implement all 7 modules"')}`,
       ];
     case "codex":
       return [
-        "1. Navigate to your project directory",
-        '2. Run: codex "Read LaunchBlocks_implementation.md and implement all 7 modules"',
+        `1. ${chalk.bold("cd launchblocks")}`,
+        `2. Run:`,
+        ``,
+        `   ${chalk.cyan.bold('codex "Read LaunchBlocks_implementation.md and implement all 7 modules"')}`,
       ];
     case "gemini":
       return [
-        "1. Navigate to your project directory",
-        '2. Run: gemini "Read LaunchBlocks_implementation.md and implement all 7 modules"',
+        `1. ${chalk.bold("cd launchblocks")}`,
+        `2. Run:`,
+        ``,
+        `   ${chalk.cyan.bold('gemini "Read LaunchBlocks_implementation.md and implement all 7 modules"')}`,
       ];
     case "all":
       return [
-        "1. Open your project in your preferred AI coding tool",
-        "2. If using Claude Code or Cursor, authenticate MCP servers when prompted",
-        '3. Tell the AI: "Read LaunchBlocks_implementation.md and implement all 7 modules"',
+        `1. ${chalk.bold("cd launchblocks")}`,
+        `2. Open your project in your preferred ${chalk.cyan("AI coding tool")}`,
+        `3. Tell the AI:`,
+        ``,
+        `   ${chalk.cyan.bold('"Read LaunchBlocks_implementation.md and implement all 7 modules"')}`,
       ];
   }
+}
+
+// Static map of file descriptions for the annotated tree
+const FILE_DESCRIPTIONS: Record<string, string> = {
+  "launchblocks.config.yaml": "Your project configuration",
+  "LaunchBlocks_implementation.md": "Master specification (all 7 modules)",
+  "CLAUDE.md": "AI context for Claude Code",
+  ".cursorrules": "AI context for Cursor",
+  "AGENTS.md": "AI context for Codex",
+  "GEMINI.md": "AI context for Gemini",
+  "specs/01-project-setup.md": "Framework scaffolding & env vars",
+  "specs/02-database.md": "Schema design & RLS policies",
+  "specs/03-authentication.md": "Signup, login, OAuth flows",
+  "specs/04-user-management.md": "User CRUD & approval workflow",
+  "specs/05-llm-gateway.md": "Python microservice & Celeste SDK",
+  "specs/06-prompt-management.md": "Prompt template CRUD & versioning",
+  "specs/07-llm-audit.md": "Audit log & cost tracking",
+  "schemas/migrations/001_roles_and_permissions.sql": "",
+  "schemas/migrations/002_users_and_profiles.sql": "",
+  "schemas/migrations/003_prompt_templates.sql": "",
+  "schemas/migrations/004_llm_audit_log.sql": "",
+  "schemas/sample-env.md": "Environment variable reference",
+  "references/supabase-auth-patterns.md": "Auth code examples",
+  "references/vercel-deploy-checklist.md": "Deployment checklist",
+  "references/llm-pricing-table.md": "LLM model pricing data",
+};
+
+interface TreeNode {
+  name: string;
+  description: string;
+  children: TreeNode[];
+}
+
+function buildTree(files: string[]): TreeNode {
+  const root: TreeNode = { name: "launchblocks/", description: "", children: [] };
+
+  for (const file of files) {
+    // Strip "launchblocks/" prefix
+    const relative = file.replace(/^launchblocks\//, "");
+    const parts = relative.split("/");
+    let current = root;
+
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i];
+      const isFile = i === parts.length - 1;
+
+      if (isFile) {
+        const desc = FILE_DESCRIPTIONS[relative] ?? "";
+        current.children.push({ name: part, description: desc, children: [] });
+      } else {
+        let dir = current.children.find(
+          (c) => c.children.length > 0 && c.name === part + "/"
+        );
+        if (!dir) {
+          dir = { name: part + "/", description: "", children: [] };
+          current.children.push(dir);
+        }
+        current = dir;
+      }
+    }
+  }
+
+  return root;
+}
+
+function renderTree(node: TreeNode, prefix: string = ""): string[] {
+  const lines: string[] = [];
+
+  for (let i = 0; i < node.children.length; i++) {
+    const child = node.children[i];
+    const isLast = i === node.children.length - 1;
+    const connector = isLast ? "└── " : "├── ";
+    const childPrefix = isLast ? "    " : "│   ";
+
+    const name =
+      child.children.length > 0
+        ? chalk.bold(child.name)
+        : chalk.white(child.name);
+
+    const descPad = child.description
+      ? " ".repeat(Math.max(1, 40 - (prefix + connector + child.name).length))
+      : "";
+    const desc = child.description
+      ? chalk.dim(descPad + child.description)
+      : "";
+
+    lines.push(`${prefix}${connector}${name}${desc}`);
+
+    if (child.children.length > 0) {
+      lines.push(...renderTree(child, prefix + childPrefix));
+    }
+  }
+
+  return lines;
+}
+
+function countByCategory(files: string[]): {
+  specs: number;
+  migrations: number;
+  references: number;
+  context: number;
+} {
+  let specs = 0;
+  let migrations = 0;
+  let references = 0;
+  let context = 0;
+
+  for (const f of files) {
+    if (f.includes("/specs/")) specs++;
+    else if (f.includes("/migrations/")) migrations++;
+    else if (f.includes("/references/")) references++;
+    else context++;
+  }
+
+  return { specs, migrations, references, context };
+}
+
+function summaryLine(files: string[]): string {
+  const counts = countByCategory(files);
+  const parts: string[] = [];
+  if (counts.specs > 0) parts.push(`${counts.specs} specs`);
+  if (counts.migrations > 0) parts.push(`${counts.migrations} migrations`);
+  if (counts.references > 0) parts.push(`${counts.references} references`);
+  if (counts.context > 0) parts.push(`${counts.context} context files`);
+  return `Created ${files.length} files (${parts.join(", ")})`;
+}
+
+function stripAnsi(str: string): string {
+  // eslint-disable-next-line no-control-regex
+  return str.replace(/\u001b\[[0-9;]*m/g, "");
+}
+
+function renderNextStepsBox(steps: string[]): string[] {
+  const lines: string[] = [];
+
+  // Measure the widest line to size the box
+  const allRawLines = [
+    "  Next steps:",
+    ...steps.map((s) => "  " + stripAnsi(s)),
+  ];
+  const maxContentWidth = Math.max(...allRawLines.map((l) => l.length));
+  const boxWidth = Math.max(50, maxContentWidth + 4); // 4 = 2 side padding
+
+  const top = chalk.dim("  ┌" + "─".repeat(boxWidth) + "┐");
+  const bottom = chalk.dim("  └" + "─".repeat(boxWidth) + "┘");
+  const empty = chalk.dim("  │") + " ".repeat(boxWidth) + chalk.dim("│");
+
+  const padLine = (content: string, rawLen: number): string => {
+    const padding = Math.max(0, boxWidth - rawLen);
+    return chalk.dim("  │") + " " + content + " ".repeat(padding) + chalk.dim("│");
+  };
+
+  lines.push(top);
+  lines.push(empty);
+
+  // Header
+  const header = chalk.bold.white("Next steps:");
+  lines.push(padLine(" " + header, 1 + "Next steps:".length));
+  lines.push(empty);
+
+  for (const step of steps) {
+    const raw = stripAnsi(step);
+    lines.push(padLine(" " + step, 1 + raw.length));
+  }
+
+  lines.push(empty);
+  lines.push(bottom);
+
+  return lines;
 }
 
 export const logger = {
@@ -165,11 +344,19 @@ export const logger = {
   summary(files: string[], setupResult: SetupResult | null, aiTool: AiTool) {
     console.log();
     logger.success("Launchblocks initialized successfully!\n");
-    console.log(chalk.white("  Created:"));
-    for (const file of files) {
-      logger.fileCreated(file);
+
+    // Annotated file tree
+    const tree = buildTree(files);
+    console.log(chalk.white("  " + chalk.bold(tree.name)));
+    for (const line of renderTree(tree)) {
+      console.log("  " + line);
     }
 
+    // Summary metrics
+    console.log();
+    console.log(chalk.green(`  ${summaryLine(files)}`));
+
+    // MCP Servers
     if (setupResult) {
       console.log();
       console.log(chalk.white("  MCP Servers:"));
@@ -183,20 +370,12 @@ export const logger = {
       );
     }
 
+    // Next steps box
     console.log();
-    console.log(chalk.white("  Next steps:"));
-    for (const step of nextSteps(aiTool)) {
-      console.log(chalk.gray(`    ${step}`));
+    const steps = nextSteps(aiTool);
+    for (const line of renderNextStepsBox(steps)) {
+      console.log(line);
     }
-    console.log();
-    console.log(
-      chalk.white("  The LaunchBlocks_implementation.md is your master blueprint.")
-    );
-    console.log(
-      chalk.white(
-        "  The SQL files in schemas/migrations/ are ready to run in Supabase."
-      )
-    );
     console.log();
   },
 };

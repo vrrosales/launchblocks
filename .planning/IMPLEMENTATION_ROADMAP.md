@@ -210,10 +210,11 @@ When `launchblocks init` is run in a directory that already contains `launchbloc
 
 ---
 
-## Phase 3: Output UX Polish
+## Phase 3: Output UX Polish ✅ COMPLETED
 
 **Gaps addressed:** #5 (annotated file tree), spinners, next steps prominence
 **Estimated scope:** `src/utils/logger.ts`, `src/generator/index.ts`, new spinner utility
+**Completed:** 2026-02-27
 
 ### Problem
 
@@ -320,13 +321,13 @@ Created 16 files (7 specs, 4 migrations, 3 references, 2 context files)
 
 ### Acceptance Criteria
 
-- [ ] Generation shows a spinner for each rendering phase
-- [ ] Post-generation summary displays an annotated file tree with descriptions
-- [ ] Tree uses proper box-drawing characters (├── └──)
-- [ ] Next steps are displayed in a prominent styled box
-- [ ] Commands in next steps are visually distinct (bold or colored)
-- [ ] Summary line shows total file count with breakdown by category
-- [ ] All output looks correct in standard 80-column terminal
+- [x] Generation shows a spinner for each rendering phase
+- [x] Post-generation summary displays an annotated file tree with descriptions
+- [x] Tree uses proper box-drawing characters (├── └──)
+- [x] Next steps are displayed in a prominent styled box
+- [x] Commands in next steps are visually distinct (bold or colored)
+- [x] Summary line shows total file count with breakdown by category
+- [x] All output looks correct in standard 80-column terminal
 
 ---
 
