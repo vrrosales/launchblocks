@@ -63,7 +63,15 @@ export async function renderContextFiles(
     created.push(`launchblocks/${tool.outputName}`);
   }
 
-  // Copy static reference files
+  return created;
+}
+
+export async function renderReferences(
+  outputDir: string
+): Promise<string[]> {
+  const templatesDir = getTemplatesDir();
+  const created: string[] = [];
+
   const referencesDir = path.join(outputDir, "references");
   await fs.ensureDir(referencesDir);
 

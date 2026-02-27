@@ -6,8 +6,10 @@ import { writeConfig } from "./config-writer.js";
 import { registerHelpers, buildTemplateContext } from "./template-utils.js";
 import { renderSpecs } from "./spec-renderer.js";
 import { renderSql } from "./sql-renderer.js";
-import { renderContextFiles } from "./context-renderer.js";
+import { renderContextFiles, renderReferences } from "./context-renderer.js";
 import { startPhase, succeedPhase, failPhase } from "../utils/spinner.js";
+
+export type GenerateScope = "config" | "context" | "specs" | "sql" | "references";
 
 export interface DryRunFile {
   path: string;
@@ -16,6 +18,7 @@ export interface DryRunFile {
 
 export interface GenerateOptions {
   dryRun?: boolean;
+  scope?: GenerateScope[];
 }
 
 export async function generateProject(
@@ -26,7 +29,10 @@ export async function generateProject(
   registerHelpers();
 
   const dryRun = options?.dryRun ?? false;
+  const scope = options?.scope;
   const showSpinners = !dryRun;
+
+  const shouldRun = (phase: GenerateScope) => !scope || scope.includes(phase);
 
   // In dry-run mode, render to a temp directory so we can measure sizes
   // without writing to the real output location
@@ -41,54 +47,73 @@ export async function generateProject(
   const allFiles: string[] = [];
 
   // 1. Write config YAML
-  if (showSpinners) startPhase("Writing config...");
-  try {
-    await writeConfig(outputDir, config);
-    allFiles.push("launchblocks/launchblocks.config.yaml");
-    if (showSpinners) succeedPhase("launchblocks.config.yaml");
-  } catch (err) {
-    if (showSpinners) failPhase("Config write failed");
-    throw err;
+  if (shouldRun("config")) {
+    if (showSpinners) startPhase("Writing config...");
+    try {
+      await writeConfig(outputDir, config);
+      allFiles.push("launchblocks/launchblocks.config.yaml");
+      if (showSpinners) succeedPhase("launchblocks.config.yaml");
+    } catch (err) {
+      if (showSpinners) failPhase("Config write failed");
+      throw err;
+    }
   }
 
-  // 2. Render LaunchBlocks_implementation.md + tool context files + references
-  if (showSpinners) startPhase("Rendering context files...");
-  try {
-    const contextFiles = await renderContextFiles(outputDir, config, context);
-    allFiles.push(...contextFiles);
-    if (showSpinners)
-      succeedPhase(
-        `Master spec + context files + ${contextFiles.filter((f) => f.includes("references/")).length} references`
-      );
-  } catch (err) {
-    if (showSpinners) failPhase("Context rendering failed");
-    throw err;
+  // 2. Render LaunchBlocks_implementation.md + tool context files
+  if (shouldRun("context")) {
+    if (showSpinners) startPhase("Rendering context files...");
+    try {
+      const contextFiles = await renderContextFiles(outputDir, config, context);
+      allFiles.push(...contextFiles);
+      if (showSpinners)
+        succeedPhase(`Master spec + ${contextFiles.length - 1} context files`);
+    } catch (err) {
+      if (showSpinners) failPhase("Context rendering failed");
+      throw err;
+    }
   }
 
-  // 3. Render spec files
-  if (showSpinners) startPhase("Rendering module specs...");
-  try {
-    const specFiles = await renderSpecs(outputDir, config, context);
-    allFiles.push(...specFiles);
-    if (showSpinners) succeedPhase(`${specFiles.length} module specs`);
-  } catch (err) {
-    if (showSpinners) failPhase("Spec rendering failed");
-    throw err;
+  // 3. Copy static reference files
+  if (shouldRun("references")) {
+    if (showSpinners) startPhase("Copying reference files...");
+    try {
+      const refFiles = await renderReferences(outputDir);
+      allFiles.push(...refFiles);
+      if (showSpinners) succeedPhase(`${refFiles.length} references`);
+    } catch (err) {
+      if (showSpinners) failPhase("Reference copy failed");
+      throw err;
+    }
   }
 
-  // 4. Render SQL migrations + sample-env
-  if (showSpinners) startPhase("Rendering SQL migrations...");
-  try {
-    const sqlFiles = await renderSql(outputDir, config, context);
-    allFiles.push(...sqlFiles);
-    const migrationCount = sqlFiles.filter((f) =>
-      f.includes("migrations/")
-    ).length;
-    if (showSpinners)
-      succeedPhase(`${migrationCount} SQL migrations + sample-env`);
-  } catch (err) {
-    if (showSpinners) failPhase("SQL rendering failed");
-    throw err;
+  // 4. Render spec files
+  if (shouldRun("specs")) {
+    if (showSpinners) startPhase("Rendering module specs...");
+    try {
+      const specFiles = await renderSpecs(outputDir, config, context);
+      allFiles.push(...specFiles);
+      if (showSpinners) succeedPhase(`${specFiles.length} module specs`);
+    } catch (err) {
+      if (showSpinners) failPhase("Spec rendering failed");
+      throw err;
+    }
+  }
+
+  // 5. Render SQL migrations + sample-env
+  if (shouldRun("sql")) {
+    if (showSpinners) startPhase("Rendering SQL migrations...");
+    try {
+      const sqlFiles = await renderSql(outputDir, config, context);
+      allFiles.push(...sqlFiles);
+      const migrationCount = sqlFiles.filter((f) =>
+        f.includes("migrations/")
+      ).length;
+      if (showSpinners)
+        succeedPhase(`${migrationCount} SQL migrations + sample-env`);
+    } catch (err) {
+      if (showSpinners) failPhase("SQL rendering failed");
+      throw err;
+    }
   }
 
   if (dryRun) {

@@ -1,5 +1,6 @@
 import { Command } from "commander";
 import { initCommand } from "../src/commands/init.js";
+import { addRoleCommand, addProviderCommand } from "../src/commands/add.js";
 
 const program = new Command();
 
@@ -37,5 +38,24 @@ program
   )
   .option("--skip-mcp", "Skip MCP server setup")
   .action(initCommand);
+
+const add = program
+  .command("add")
+  .description("Add a role or provider to an existing Launchblocks project");
+
+add
+  .command("role <name>")
+  .description("Add a new role to the project")
+  .option("--permissions <list>", "Comma-separated permissions")
+  .option("--owner", "Set as owner role")
+  .option("--default", "Set as default role")
+  .option("--dry-run", "Preview changes without writing files")
+  .action(addRoleCommand);
+
+add
+  .command("provider <name>")
+  .description("Add a new LLM provider")
+  .option("--dry-run", "Preview changes without writing files")
+  .action(addProviderCommand);
 
 program.parse();

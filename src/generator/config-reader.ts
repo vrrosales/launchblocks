@@ -3,7 +3,7 @@ import YAML from "yaml";
 import type { LaunchblocksConfig } from "./config-writer.js";
 
 const VALID_AI_TOOLS = ["claude", "cursor", "codex", "gemini", "all"];
-const VALID_PROVIDERS = [
+export const VALID_PROVIDERS = [
   "openai",
   "anthropic",
   "google",
@@ -13,7 +13,7 @@ const VALID_PROVIDERS = [
   "deepseek",
   "groq",
 ];
-const VALID_PERMISSIONS = [
+export const VALID_PERMISSIONS = [
   "manage_users",
   "manage_roles",
   "manage_prompts",
