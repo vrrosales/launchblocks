@@ -781,10 +781,11 @@ All billing content is wrapped in `{{#if include_billing}}` blocks so it only ap
 
 ---
 
-## Phase 8: Branding & Distribution
+## Phase 8: Branding & Distribution ✅ COMPLETED
 
 **Gaps addressed:** #10 (SDD positioning), `create-launchblocks` npm alias
 **Estimated scope:** `package.json`, README, marketing copy, npm configuration
+**Completed:** 2026-02-27
 
 ### Problem
 
@@ -889,12 +890,12 @@ Update `package.json` keywords:
 
 ### Acceptance Criteria
 
-- [ ] `npm create launchblocks` or `npx create-launchblocks` works
-- [ ] README includes SDD section explaining the approach
-- [ ] CLI banner references Spec-Driven Development
-- [ ] npm keywords include SDD-related terms
-- [ ] Package description mentions SDD
-- [ ] All existing functionality unchanged
+- [x] `npm create launchblocks` or `npx create-launchblocks` works
+- [x] README includes SDD section explaining the approach
+- [x] CLI banner references Spec-Driven Development
+- [x] npm keywords include SDD-related terms
+- [x] Package description mentions SDD
+- [x] All existing functionality unchanged
 
 ---
 

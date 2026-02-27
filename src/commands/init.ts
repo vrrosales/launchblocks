@@ -144,7 +144,7 @@ async function generateFromConfig(
   configPath: string,
   opts: CLIOptions
 ): Promise<void> {
-  intro("Launchblocks — Spec-Driven AI App Foundation");
+  intro("Launchblocks — Spec-Driven Development for AI Apps");
   logger.step(`Reading config from ${configPath}...`);
 
   const config = await readConfig(configPath);
@@ -188,7 +188,7 @@ export async function initCommand(opts: CLIOptions): Promise<void> {
       "launchblocks.config.yaml"
     );
     if (!opts.defaults && (await fs.pathExists(existingConfigPath))) {
-      intro("Launchblocks — Spec-Driven AI App Foundation");
+      intro("Launchblocks — Spec-Driven Development for AI Apps");
 
       const action = await select({
         message:
@@ -225,7 +225,7 @@ export async function initCommand(opts: CLIOptions): Promise<void> {
         answers.llmAccessRoles = answers.roles.map((r) => r.name);
       }
 
-      intro("Launchblocks — Spec-Driven AI App Foundation");
+      intro("Launchblocks — Spec-Driven Development for AI Apps");
       logger.success("Using recommended defaults.");
     } else {
       // Build partial answers from any individual flags

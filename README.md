@@ -1,8 +1,19 @@
 # Launchblocks
 
-**Spec-driven launchpad for AI-powered applications.** An interactive CLI that asks 8 questions about your app, then generates a complete project specification, SQL migrations, and AI context files — ready to hand to any AI coding tool to build.
+**Spec-Driven Development (SDD) for AI-powered applications.** An interactive CLI that asks a few questions about your app, then generates a complete project specification, SQL migrations, and AI context files — ready to hand to any AI coding tool to build.
 
 Launchblocks is **not** a code generator. It produces the *blueprint* that AI coding tools (Claude Code, Cursor, Codex, Gemini) use to build a full-stack application from scratch.
+
+## Spec-Driven Development
+
+Launchblocks is a **Spec-Driven Development (SDD)** tool. Instead of generating code directly, it generates *specifications* that AI coding tools implement. This approach is now recognized as a best practice for AI-assisted development.
+
+**Why SDD?**
+
+- **AI agents perform better with structured specs** than ad-hoc prompts — numbered tasks, acceptance criteria, and test specifications guide the AI through complex implementations step by step
+- **Specs are reviewable, version-controllable, and tool-agnostic** — switch between Claude Code, Cursor, Codex, or Gemini without changing your specs
+- **You keep full control over the architecture** — the spec defines *what* to build, the AI handles *how* to build it
+- **Repeatable and deterministic** — the same spec produces consistent implementations across runs and teams
 
 ## Concept Graph
 
@@ -22,7 +33,7 @@ Launchblocks is **not** a code generator. It produces the *blueprint* that AI co
              ▼
   ┌──────────────────────────────┐
   │     Interview Runner         │  src/interview/runner.ts
-  │     8 Interactive Prompts    │  Uses Inquirer.js
+  │     8 Interactive Prompts    │  Uses @clack/prompts
   │                              │
   │  Q1  AI Tool Selection       │  Claude / Cursor / Codex / Gemini / All
   │  Q2  Roles Definition        │  Preset or custom (2-10 roles)
@@ -125,6 +136,12 @@ All templates use [Handlebars](https://handlebarsjs.com/) with custom helpers (`
 After generation, the CLI detects whether Supabase and Vercel MCP (Model Context Protocol) servers are already configured. If not, it offers to install them at either the project level (`.mcp.json`) or user level (`~/.claude.json`), giving the AI coding tool direct access to your Supabase database and Vercel deployment.
 
 ## Quick Start
+
+```bash
+npm create launchblocks@latest
+```
+
+Or use npx:
 
 ```bash
 npx launchblocks init
@@ -340,7 +357,8 @@ src/
 | Package | Purpose |
 |---------|---------|
 | [commander](https://github.com/tj/commander.js) | CLI argument parsing and command routing |
-| [inquirer](https://github.com/SBoudrias/Inquirer.js) | Interactive terminal prompts for the interview |
+| [@clack/prompts](https://github.com/natemoo-re/clack) | Interactive terminal prompts for the interview |
+| [ora](https://github.com/sindresorhus/ora) | Elegant terminal spinners for progress feedback |
 | [handlebars](https://handlebarsjs.com/) | Template engine for specs, SQL, and context files |
 | [chalk](https://github.com/chalk/chalk) | Colored terminal output |
 | [fs-extra](https://github.com/jprichardson/node-fs-extra) | File system operations (write, copy, ensureDir) |

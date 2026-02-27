@@ -1,7 +1,7 @@
 {
   "name": "launchblocks",
   "version": "0.1.0",
-  "description": "Spec-driven launchpad for AI-powered applications",
+  "description": "Spec-Driven Development (SDD) tool for AI-powered applications",
   "type": "module",
   "bin": {
     "launchblocks": "./dist/bin/launchblocks.js"
@@ -17,6 +17,8 @@
     "start": "node dist/bin/launchblocks.js"
   },
   "keywords": [
+    "sdd",
+    "spec-driven-development",
     "ai",
     "llm",
     "scaffold",
@@ -24,7 +26,13 @@
     "supabase",
     "vercel",
     "vibe-coding",
-    "launchblocks"
+    "launchblocks",
+    "specification",
+    "ai-agent",
+    "cursor",
+    "claude",
+    "codex",
+    "gemini"
   ],
   "engines": {
     "node": ">=18"

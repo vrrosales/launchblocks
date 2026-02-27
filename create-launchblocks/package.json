@@ -1,0 +1,30 @@
+{
+  "name": "create-launchblocks",
+  "version": "0.1.0",
+  "description": "Create a new Launchblocks project — Spec-Driven Development (SDD) for AI-powered apps",
+  "bin": {
+    "create-launchblocks": "./index.js"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "create",
+    "sdd",
+    "spec-driven-development",
+    "ai",
+    "llm",
+    "launchblocks",
+    "scaffold",
+    "cli"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vrrosales/launchblocks",
+    "directory": "create-launchblocks"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

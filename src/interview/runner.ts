@@ -13,7 +13,7 @@ import { askBilling } from "./questions/billing.js";
 export async function runInterview(
   prefilled?: Partial<InterviewAnswers>
 ): Promise<InterviewAnswers> {
-  intro("Launchblocks — Spec-Driven AI App Foundation");
+  intro("Launchblocks — Spec-Driven Development for AI Apps");
 
   // Count how many questions we actually need to ask
   const steps: string[] = [];

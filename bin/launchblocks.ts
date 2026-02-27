@@ -6,7 +6,7 @@ const program = new Command();
 
 program
   .name("launchblocks")
-  .description("Spec-driven launchpad for AI-powered applications")
+  .description("Spec-Driven Development (SDD) tool for AI-powered applications")
   .version("0.1.0");
 
 program
