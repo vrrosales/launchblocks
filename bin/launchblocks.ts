@@ -15,6 +15,7 @@ program
   )
   .option("--defaults", "Use recommended defaults, skip interview")
   .option("--dry-run", "Preview output without writing files")
+  .option("--config <path>", "Regenerate project from an existing config file")
   .option("--app-name <name>", "Application name")
   .option(
     "--roles <roles>",

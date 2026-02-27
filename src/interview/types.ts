@@ -77,6 +77,7 @@ export const DEFAULT_LLM_PROVIDERS = ["openai"];
 export interface CLIOptions {
   defaults?: boolean;
   dryRun?: boolean;
+  config?: string;
   appName?: string;
   roles?: string;
   requireApproval?: boolean;

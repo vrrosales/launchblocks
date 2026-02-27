@@ -1,3 +1,6 @@
+import path from "node:path";
+import fs from "fs-extra";
+import inquirer from "inquirer";
 import { runInterview } from "../interview/runner.js";
 import {
   ALL_PERMISSIONS,
@@ -10,6 +13,7 @@ import {
   type RoleConfig,
 } from "../interview/types.js";
 import { buildConfig } from "../generator/config-writer.js";
+import { readConfig } from "../generator/config-reader.js";
 import { generateProject, type DryRunFile } from "../generator/index.js";
 import { runSetup } from "../setup/runner.js";
 import { logger } from "../utils/logger.js";
@@ -115,8 +119,76 @@ function buildAnswersFromFlags(opts: CLIOptions): Partial<InterviewAnswers> {
   return partial;
 }
 
+async function generateFromConfig(
+  configPath: string,
+  opts: CLIOptions
+): Promise<void> {
+  logger.banner();
+  logger.step(`Reading config from ${configPath}...`);
+
+  const config = await readConfig(configPath);
+  logger.success(`Loaded config for "${config.app_name}".`);
+
+  logger.step("Generating project files...");
+
+  if (opts.dryRun) {
+    const preview = await generateProject(process.cwd(), config, {
+      dryRun: true,
+    });
+    logger.dryRunSummary(preview as DryRunFile[]);
+    return;
+  }
+
+  const createdFiles = (await generateProject(
+    process.cwd(),
+    config
+  )) as string[];
+
+  let setupResult = null;
+  if (!opts.skipMcp) {
+    setupResult = await runSetup(config.ai_tool as AiTool);
+  }
+
+  logger.summary(createdFiles, setupResult, config.ai_tool as AiTool);
+}
+
 export async function initCommand(opts: CLIOptions): Promise<void> {
   try {
+    // --config: regenerate from an explicit config file
+    if (opts.config) {
+      await generateFromConfig(opts.config, opts);
+      return;
+    }
+
+    // Auto-detect existing config
+    const existingConfigPath = path.join(
+      process.cwd(),
+      "launchblocks",
+      "launchblocks.config.yaml"
+    );
+    if (!opts.defaults && (await fs.pathExists(existingConfigPath))) {
+      const { action } = await inquirer.prompt([
+        {
+          type: "list",
+          name: "action",
+          message:
+            "Found existing launchblocks.config.yaml. What would you like to do?",
+          choices: [
+            {
+              name: "Regenerate from existing config",
+              value: "regenerate",
+            },
+            { name: "Start fresh (new interview)", value: "fresh" },
+          ],
+        },
+      ]);
+
+      if (action === "regenerate") {
+        await generateFromConfig(existingConfigPath, opts);
+        return;
+      }
+    }
+
     let answers: InterviewAnswers;
 
     if (opts.defaults) {
@@ -145,12 +217,11 @@ export async function initCommand(opts: CLIOptions): Promise<void> {
       }
     }
 
-    // Step 3: Build the config object
+    // Build the config object
     logger.step("Generating project files...");
     const config = buildConfig(answers);
 
     if (opts.dryRun) {
-      // --dry-run: preview without writing
       const preview = await generateProject(process.cwd(), config, {
         dryRun: true,
       });
@@ -158,16 +229,19 @@ export async function initCommand(opts: CLIOptions): Promise<void> {
       return;
     }
 
-    // Step 4: Generate all files
-    const createdFiles = await generateProject(process.cwd(), config) as string[];
+    // Generate all files
+    const createdFiles = (await generateProject(
+      process.cwd(),
+      config
+    )) as string[];
 
-    // Step 5: MCP Server Setup
+    // MCP Server Setup
     let setupResult = null;
     if (!opts.skipMcp) {
       setupResult = await runSetup(answers.aiTool);
     }
 
-    // Step 6: Show summary
+    // Show summary
     logger.summary(createdFiles, setupResult, answers.aiTool);
   } catch (error) {
     if (
