@@ -1,6 +1,13 @@
 import chalk from "chalk";
 import type { SetupResult } from "../setup/types.js";
 import type { AiTool } from "../interview/types.js";
+import type { DryRunFile } from "../generator/index.js";
+
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  const kb = bytes / 1024;
+  return `${kb.toFixed(1)} KB`;
+}
 
 function mcpLabel(result: SetupResult, name: "supabase" | "vercel"): string {
   const status = result[name];
@@ -122,6 +129,37 @@ export const logger = {
 
   fileCreated(filePath: string) {
     console.log(chalk.gray(`    ${filePath}`));
+  },
+
+  dryRunSummary(files: DryRunFile[]) {
+    console.log();
+    console.log(
+      chalk.yellow("  ⚡ Dry run — no files were written.\n")
+    );
+    console.log(chalk.white("  Files that would be created:\n"));
+
+    const totalSize = files.reduce((sum, f) => sum + f.size, 0);
+
+    for (const file of files) {
+      const sizeStr = formatSize(file.size);
+      console.log(
+        chalk.gray(`    ${file.path}`) + chalk.dim(`  (${sizeStr})`)
+      );
+    }
+
+    console.log();
+    console.log(
+      chalk.white(
+        `  Total: ${files.length} files (${formatSize(totalSize)})`
+      )
+    );
+    console.log();
+    console.log(
+      chalk.gray(
+        "  Run without --dry-run to generate these files."
+      )
+    );
+    console.log();
   },
 
   summary(files: string[], setupResult: SetupResult | null, aiTool: AiTool) {

@@ -73,3 +73,28 @@ export const DEFAULT_ROLES: RoleConfig[] = [
 ];
 
 export const DEFAULT_LLM_PROVIDERS = ["openai"];
+
+export interface CLIOptions {
+  defaults?: boolean;
+  dryRun?: boolean;
+  appName?: string;
+  roles?: string;
+  requireApproval?: boolean;
+  noRequireApproval?: boolean;
+  llmProviders?: string;
+  llmAccess?: string;
+  aiTool?: AiTool;
+  skipMcp?: boolean;
+}
+
+export const DEFAULT_ANSWERS: InterviewAnswers = {
+  appName: "My App",
+  roles: DEFAULT_ROLES,
+  ownerRole: "super_admin",
+  defaultRole: "user",
+  requireApproval: true,
+  adminRoles: ["super_admin", "admin"],
+  llmAccessRoles: ["super_admin", "admin", "user"],
+  llmProviders: DEFAULT_LLM_PROVIDERS,
+  aiTool: "claude",
+};
