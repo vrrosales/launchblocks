@@ -127,6 +127,7 @@ async function main() {
     llmAccessRoles: ["super_admin", "admin", "user"],
     llmProviders: ["openai"],
     aiTool: "claude",
+    includeBilling: false,
   };
 
   const test1 = await runTest("defaults", defaultAnswers);
@@ -167,6 +168,7 @@ async function main() {
     llmAccessRoles: ["owner", "editor"],
     llmProviders: ["openai", "anthropic", "mistral"],
     aiTool: "all",
+    includeBilling: false,
   };
 
   const test2 = await runTest("custom", customAnswers);
@@ -182,6 +184,7 @@ async function main() {
     llmAccessRoles: ["super_admin", "admin", "user"],
     llmProviders: ["openai", "anthropic", "google", "mistral", "cohere", "xai", "deepseek", "groq"],
     aiTool: "claude",
+    includeBilling: false,
   };
 
   const test3 = await runTest("all-providers", allProvidersAnswers);
@@ -217,11 +220,74 @@ async function main() {
     console.log("  Extra checks: all passed");
   }
 
+  // Test 4: Billing enabled (subscription)
+  const billingAnswers: InterviewAnswers = {
+    appName: "Billing Test App",
+    roles: DEFAULT_ROLES,
+    ownerRole: "super_admin",
+    defaultRole: "user",
+    requireApproval: true,
+    adminRoles: ["super_admin", "admin"],
+    llmAccessRoles: ["super_admin", "admin", "user"],
+    llmProviders: ["openai", "anthropic"],
+    aiTool: "claude",
+    includeBilling: true,
+    billingModel: "subscription",
+  };
+
+  const test4 = await runTest("billing", billingAnswers);
+
+  // Extra verification for billing test
+  let test4Extra = true;
+  const billingDir = path.join(TEST_DIR, "billing", "launchblocks");
+
+  // Verify billing spec and SQL exist
+  for (const billingFile of ["specs/08-billing.md", "schemas/migrations/005_billing.sql"]) {
+    const fp = path.join(billingDir, billingFile);
+    if (await fs.pathExists(fp)) {
+      const content = await fs.readFile(fp, "utf-8");
+      if (content.length === 0) {
+        console.log(`  FAIL: ${billingFile} is empty`);
+        test4Extra = false;
+      }
+    } else {
+      console.log(`  FAIL: ${billingFile} not found`);
+      test4Extra = false;
+    }
+  }
+
+  // Verify sample-env includes Stripe vars
+  const billingSampleEnv = await fs.readFile(path.join(billingDir, "schemas/sample-env.md"), "utf-8");
+  for (const stripeVar of ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET", "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY"]) {
+    if (!billingSampleEnv.includes(stripeVar)) {
+      console.log(`  FAIL: sample-env.md missing ${stripeVar}`);
+      test4Extra = false;
+    }
+  }
+
+  // Verify master spec mentions Module 8
+  const billingImpl = await fs.readFile(path.join(billingDir, "LaunchBlocks_implementation.md"), "utf-8");
+  if (!billingImpl.includes("Module 8")) {
+    console.log("  FAIL: LaunchBlocks_implementation.md missing Module 8 reference");
+    test4Extra = false;
+  }
+
+  // Verify CLAUDE.md mentions 8 modules
+  const billingClaude = await fs.readFile(path.join(billingDir, "CLAUDE.md"), "utf-8");
+  if (!billingClaude.includes("8 modules")) {
+    console.log("  FAIL: CLAUDE.md missing '8 modules' reference");
+    test4Extra = false;
+  }
+
+  if (test4Extra) {
+    console.log("  Billing extra checks: all passed");
+  }
+
   // Cleanup
   // await fs.remove(TEST_DIR);
 
   console.log("\n============================");
-  if (test1 && test2 && test3 && test3Extra) {
+  if (test1 && test2 && test3 && test3Extra && test4 && test4Extra) {
     console.log("ALL TESTS PASSED");
     process.exit(0);
   } else {

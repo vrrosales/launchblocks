@@ -30,6 +30,8 @@ export interface RoleConfig {
 
 export type AiTool = "claude" | "cursor" | "codex" | "gemini" | "all";
 
+export type BillingModel = "subscription" | "usage" | "both";
+
 export interface InterviewAnswers {
   appName: string;
   roles: RoleConfig[];
@@ -40,6 +42,8 @@ export interface InterviewAnswers {
   llmAccessRoles: string[];
   llmProviders: string[];
   aiTool: AiTool;
+  includeBilling: boolean;
+  billingModel?: BillingModel;
 }
 
 export const DEFAULT_ROLES: RoleConfig[] = [
@@ -86,6 +90,8 @@ export interface CLIOptions {
   llmAccess?: string;
   aiTool?: AiTool;
   skipMcp?: boolean;
+  includeBilling?: boolean;
+  billingModel?: BillingModel;
 }
 
 export const DEFAULT_ANSWERS: InterviewAnswers = {
@@ -98,4 +104,5 @@ export const DEFAULT_ANSWERS: InterviewAnswers = {
   llmAccessRoles: ["super_admin", "admin", "user"],
   llmProviders: DEFAULT_LLM_PROVIDERS,
   aiTool: "claude",
+  includeBilling: false,
 };

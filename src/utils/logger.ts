@@ -16,7 +16,10 @@ function mcpLabel(result: SetupResult, name: "supabase" | "vercel"): string {
   return status.location === "project" ? "project-level" : "user-level";
 }
 
-function nextSteps(aiTool: AiTool): string[] {
+function nextSteps(aiTool: AiTool, includeBilling: boolean): string[] {
+  const moduleCount = includeBilling ? 8 : 7;
+  const moduleText = `all ${moduleCount} modules`;
+
   switch (aiTool) {
     case "claude":
       return [
@@ -24,7 +27,7 @@ function nextSteps(aiTool: AiTool): string[] {
         `2. Open your project in ${chalk.cyan("Claude Code")}`,
         `3. Tell Claude:`,
         ``,
-        `   ${chalk.cyan.bold('"Read LaunchBlocks_implementation.md and implement all 7 modules"')}`,
+        `   ${chalk.cyan.bold(`"Read LaunchBlocks_implementation.md and implement ${moduleText}"`)}`,
       ];
     case "cursor":
       return [
@@ -32,21 +35,21 @@ function nextSteps(aiTool: AiTool): string[] {
         `2. Open your project in ${chalk.cyan("Cursor")}`,
         `3. In Composer, tell it:`,
         ``,
-        `   ${chalk.cyan.bold('"Read LaunchBlocks_implementation.md and implement all 7 modules"')}`,
+        `   ${chalk.cyan.bold(`"Read LaunchBlocks_implementation.md and implement ${moduleText}"`)}`,
       ];
     case "codex":
       return [
         `1. ${chalk.bold("cd launchblocks")}`,
         `2. Run:`,
         ``,
-        `   ${chalk.cyan.bold('codex "Read LaunchBlocks_implementation.md and implement all 7 modules"')}`,
+        `   ${chalk.cyan.bold(`codex "Read LaunchBlocks_implementation.md and implement ${moduleText}"`)}`,
       ];
     case "gemini":
       return [
         `1. ${chalk.bold("cd launchblocks")}`,
         `2. Run:`,
         ``,
-        `   ${chalk.cyan.bold('gemini "Read LaunchBlocks_implementation.md and implement all 7 modules"')}`,
+        `   ${chalk.cyan.bold(`gemini "Read LaunchBlocks_implementation.md and implement ${moduleText}"`)}`,
       ];
     case "all":
       return [
@@ -54,7 +57,7 @@ function nextSteps(aiTool: AiTool): string[] {
         `2. Open your project in your preferred ${chalk.cyan("AI coding tool")}`,
         `3. Tell the AI:`,
         ``,
-        `   ${chalk.cyan.bold('"Read LaunchBlocks_implementation.md and implement all 7 modules"')}`,
+        `   ${chalk.cyan.bold(`"Read LaunchBlocks_implementation.md and implement ${moduleText}"`)}`,
       ];
   }
 }
@@ -74,10 +77,12 @@ const FILE_DESCRIPTIONS: Record<string, string> = {
   "specs/05-llm-gateway.md": "Python microservice & Celeste SDK",
   "specs/06-prompt-management.md": "Prompt template CRUD & versioning",
   "specs/07-llm-audit.md": "Audit log & cost tracking",
+  "specs/08-billing.md": "Stripe billing & subscriptions",
   "schemas/migrations/001_roles_and_permissions.sql": "",
   "schemas/migrations/002_users_and_profiles.sql": "",
   "schemas/migrations/003_prompt_templates.sql": "",
   "schemas/migrations/004_llm_audit_log.sql": "",
+  "schemas/migrations/005_billing.sql": "",
   "schemas/sample-env.md": "Environment variable reference",
   "references/supabase-auth-patterns.md": "Auth code examples",
   "references/vercel-deploy-checklist.md": "Deployment checklist",
@@ -260,7 +265,7 @@ export const logger = {
     console.log();
   },
 
-  summary(files: string[], setupResult: SetupResult | null, aiTool: AiTool) {
+  summary(files: string[], setupResult: SetupResult | null, aiTool: AiTool, includeBilling = false) {
     console.log();
     logger.success("Launchblocks initialized successfully!\n");
 
@@ -290,7 +295,7 @@ export const logger = {
     }
 
     // Next steps using @clack/prompts note()
-    const steps = nextSteps(aiTool);
+    const steps = nextSteps(aiTool, includeBilling);
     const stepsContent = steps.map((s) => stripAnsi(s)).join("\n");
     note(stepsContent, "Next steps");
 

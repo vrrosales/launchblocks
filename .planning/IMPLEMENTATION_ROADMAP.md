@@ -673,10 +673,11 @@ The `add` commands use `scope` to regenerate only the files affected by the chan
 
 ---
 
-## Phase 7: Billing Module
+## Phase 7: Billing Module ✅ COMPLETED
 
 **Gaps addressed:** #7 (Billing/Stripe module)
 **Estimated scope:** New spec template, new SQL template, updates to master spec and interview
+**Completed:** 2026-02-27
 
 ### Problem
 
@@ -769,14 +770,14 @@ All billing content is wrapped in `{{#if include_billing}}` blocks so it only ap
 
 ### Acceptance Criteria
 
-- [ ] Billing question appears in interview when running `launchblocks init`
-- [ ] Selecting "No" produces identical output to current behavior (no regressions)
-- [ ] Selecting "Yes" generates `08-billing.md` spec and `005_billing.sql` migration
-- [ ] SQL migration includes subscription_plans, user_subscriptions, billing_events tables
-- [ ] RLS policies restrict billing data to the owning user
-- [ ] Master spec references Module 8 when billing is enabled
-- [ ] sample-env.md includes STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET
-- [ ] `--defaults` flag (from Phase 1) defaults billing to off
+- [x] Billing question appears in interview when running `launchblocks init`
+- [x] Selecting "No" produces identical output to current behavior (no regressions)
+- [x] Selecting "Yes" generates `08-billing.md` spec and `005_billing.sql` migration
+- [x] SQL migration includes subscription_plans, user_subscriptions, billing_events tables
+- [x] RLS policies restrict billing data to the owning user
+- [x] Master spec references Module 8 when billing is enabled
+- [x] sample-env.md includes STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET
+- [x] `--defaults` flag (from Phase 1) defaults billing to off
 
 ---
 

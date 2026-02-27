@@ -8,6 +8,7 @@ import { askLlmAccess } from "./questions/llm-access.js";
 import { askProviders } from "./questions/providers.js";
 import { askAppInfo } from "./questions/app-info.js";
 import { askAiTool } from "./questions/ai-tool.js";
+import { askBilling } from "./questions/billing.js";
 
 export async function runInterview(
   prefilled?: Partial<InterviewAnswers>
@@ -24,6 +25,7 @@ export async function runInterview(
   if (!prefilled?.llmAccessRoles) steps.push("LLM Access");
   if (!prefilled?.llmProviders) steps.push("LLM Providers");
   if (!prefilled?.appName) steps.push("App Info");
+  if (prefilled?.includeBilling === undefined) steps.push("Billing");
 
   const totalSteps = steps.length;
   let currentStep = 0;
@@ -93,6 +95,16 @@ export async function runInterview(
     appName = await askAppInfo();
   }
 
+  // Q9: Billing
+  let includeBilling = prefilled?.includeBilling;
+  let billingModel = prefilled?.billingModel;
+  if (includeBilling === undefined) {
+    log.step(stepLabel("Billing"));
+    const result = await askBilling();
+    includeBilling = result.includeBilling;
+    billingModel = result.billingModel;
+  }
+
   return {
     appName,
     roles,
@@ -103,5 +115,7 @@ export async function runInterview(
     llmAccessRoles,
     llmProviders,
     aiTool,
+    includeBilling,
+    billingModel,
   };
 }

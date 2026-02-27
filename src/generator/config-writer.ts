@@ -20,6 +20,8 @@ export interface LaunchblocksConfig {
   llm_access_roles: string[];
   llm_providers: string[];
   ai_tool: string;
+  include_billing: boolean;
+  billing_model?: "subscription" | "usage" | "both";
 }
 
 export function buildConfig(answers: InterviewAnswers): LaunchblocksConfig {
@@ -46,6 +48,10 @@ export function buildConfig(answers: InterviewAnswers): LaunchblocksConfig {
     llm_access_roles: answers.llmAccessRoles,
     llm_providers: answers.llmProviders,
     ai_tool: answers.aiTool,
+    include_billing: answers.includeBilling,
+    ...(answers.includeBilling && answers.billingModel
+      ? { billing_model: answers.billingModel }
+      : {}),
   };
 }
 

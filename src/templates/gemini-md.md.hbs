@@ -2,7 +2,7 @@
 
 Read `LaunchBlocks_implementation.md` in this directory. It is the complete specification for this project.
 
-Implement all 7 modules in the order specified (Module 1 through Module 7).
+Implement all {{#if include_billing}}8{{else}}7{{/if}} modules in the order specified (Module 1 through Module {{#if include_billing}}8{{else}}7{{/if}}).
 Use the SQL files in `schemas/migrations/` directly — they are ready to run in Supabase.
 Refer to `specs/` for detailed module specifications beyond what LaunchBlocks_implementation.md covers.
 Refer to `references/` for implementation patterns and pricing data.
@@ -12,3 +12,6 @@ Roles: {{role_names_joined}}
 Owner role: {{owner_role}} | Default role: {{default_role}}
 {{#if require_approval}}New signups require admin approval.{{else}}New signups get immediate access.{{/if}}
 LLM Providers: {{#each providers_display}}{{this.name}}{{#unless @last}}, {{/unless}}{{/each}}
+{{#if include_billing}}
+Billing: Stripe ({{billing_model}})
+{{/if}}

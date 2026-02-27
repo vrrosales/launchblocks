@@ -7,6 +7,7 @@ import {
   DEFAULT_ANSWERS,
   DEFAULT_LLM_PROVIDERS,
   type AiTool,
+  type BillingModel,
   type CLIOptions,
   type InterviewAnswers,
   type Permission,
@@ -21,6 +22,7 @@ import { parseCommaSeparated } from "../utils/validation.js";
 import { toDisplayName } from "../utils/slug.js";
 
 const VALID_AI_TOOLS = ["claude", "cursor", "codex", "gemini", "all"];
+const VALID_BILLING_MODELS = ["subscription", "usage", "both"];
 const VALID_PROVIDERS = [
   "openai",
   "anthropic",
@@ -116,6 +118,25 @@ function buildAnswersFromFlags(opts: CLIOptions): Partial<InterviewAnswers> {
     }
   }
 
+  if (opts.includeBilling) {
+    partial.includeBilling = true;
+    if (opts.billingModel) {
+      if (!VALID_BILLING_MODELS.includes(opts.billingModel)) {
+        throw new Error(
+          `Invalid --billing-model "${opts.billingModel}". Must be one of: ${VALID_BILLING_MODELS.join(", ")}`
+        );
+      }
+      partial.billingModel = opts.billingModel as BillingModel;
+    } else {
+      partial.billingModel = "subscription";
+    }
+  } else if (opts.includeBilling === false || opts.includeBilling === undefined) {
+    // Only set if explicitly provided via flag
+    if (opts.includeBilling === false) {
+      partial.includeBilling = false;
+    }
+  }
+
   return partial;
 }
 
@@ -149,7 +170,7 @@ async function generateFromConfig(
     setupResult = await runSetup(config.ai_tool as AiTool);
   }
 
-  logger.summary(createdFiles, setupResult, config.ai_tool as AiTool);
+  logger.summary(createdFiles, setupResult, config.ai_tool as AiTool, config.include_billing);
 }
 
 export async function initCommand(opts: CLIOptions): Promise<void> {
@@ -245,7 +266,7 @@ export async function initCommand(opts: CLIOptions): Promise<void> {
     }
 
     // Show summary
-    logger.summary(createdFiles, setupResult, answers.aiTool);
+    logger.summary(createdFiles, setupResult, answers.aiTool, answers.includeBilling);
   } catch (error) {
     logger.error(
       error instanceof Error ? error.message : "An unexpected error occurred."

@@ -132,5 +132,10 @@ export function buildTemplateContext(
     role_permission_summary: rolePermissionSummary,
     has_multiple_providers: config.llm_providers.length > 1,
     all_roles_have_llm: config.llm_access_roles.length === config.roles.length,
+    include_billing: config.include_billing,
+    billing_model: config.billing_model,
+    is_subscription: config.billing_model === "subscription" || config.billing_model === "both",
+    is_usage_based: config.billing_model === "usage" || config.billing_model === "both",
+    is_billing_both: config.billing_model === "both",
   };
 }

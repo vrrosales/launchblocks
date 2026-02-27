@@ -14,6 +14,13 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 {{/each}}
 # LLM Service
 LLM_SERVICE_URL=http://localhost:8000
+{{#if include_billing}}
+
+# Stripe
+STRIPE_SECRET_KEY=sk_test_your-stripe-key
+STRIPE_WEBHOOK_SECRET=whsec_your-webhook-secret
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_your-stripe-key
+{{/if}}
 
 # App
 NEXT_PUBLIC_APP_NAME={{app_name}}
@@ -31,3 +38,8 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 | `{{this.env_var}}` | {{this.env_docs_url}} |
 {{/each}}
 | `LLM_SERVICE_URL` | URL of your Python LLM microservice (default: `http://localhost:8000`) |
+{{#if include_billing}}
+| `STRIPE_SECRET_KEY` | Stripe Dashboard → Developers → API keys → Secret key |
+| `STRIPE_WEBHOOK_SECRET` | Stripe Dashboard → Developers → Webhooks → Signing secret |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe Dashboard → Developers → API keys → Publishable key |
+{{/if}}

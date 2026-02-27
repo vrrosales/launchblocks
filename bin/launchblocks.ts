@@ -37,6 +37,11 @@ program
     "AI tool: claude | cursor | codex | gemini | all"
   )
   .option("--skip-mcp", "Skip MCP server setup")
+  .option("--include-billing", "Include Stripe billing module")
+  .option(
+    "--billing-model <model>",
+    "Billing model: subscription | usage | both"
+  )
   .action(initCommand);
 
 const add = program

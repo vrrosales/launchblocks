@@ -4,7 +4,7 @@ Read `LaunchBlocks_implementation.md` in this directory. It is the complete spec
 
 ## Implementation Order
 
-Implement all 7 modules in the order specified (Module 1 through Module 7):
+Implement all {{#if include_billing}}8{{else}}7{{/if}} modules in the order specified (Module 1 through Module {{#if include_billing}}8{{else}}7{{/if}}):
 
 1. **Project Setup** — Framework scaffolding, Supabase client, env vars
 2. **Database** — Run the SQL migrations in `schemas/migrations/` in Supabase
@@ -13,6 +13,9 @@ Implement all 7 modules in the order specified (Module 1 through Module 7):
 5. **LLM Gateway** — Python microservice (Celeste AI SDK) + Next.js proxy for {{llm_access_roles_joined}}
 6. **Prompt Management** — CRUD for prompt templates, versioning
 7. **LLM Audit** — Logging every LLM call with token counts and cost estimates
+{{#if include_billing}}
+8. **Billing** — Stripe integration, subscription plans, checkout, webhooks, plan gating
+{{/if}}
 
 ## Key Files
 

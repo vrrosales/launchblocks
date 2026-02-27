@@ -3,6 +3,7 @@ import YAML from "yaml";
 import type { LaunchblocksConfig } from "./config-writer.js";
 
 const VALID_AI_TOOLS = ["claude", "cursor", "codex", "gemini", "all"];
+const VALID_BILLING_MODELS = ["subscription", "usage", "both"];
 export const VALID_PROVIDERS = [
   "openai",
   "anthropic",
@@ -147,6 +148,22 @@ export function validateConfig(raw: unknown): LaunchblocksConfig {
         `Config error: LLM access role "${lr}" not found in roles [${roleNames.join(", ")}].`
       );
     }
+  }
+
+  // Billing fields (optional — defaults to false for backwards compatibility)
+  if (obj.include_billing !== undefined) {
+    assertBoolean(obj.include_billing, "include_billing");
+
+    if (obj.include_billing && obj.billing_model !== undefined) {
+      assertString(obj.billing_model, "billing_model");
+      if (!VALID_BILLING_MODELS.includes(obj.billing_model as string)) {
+        throw new Error(
+          `Config error: "billing_model" must be one of: ${VALID_BILLING_MODELS.join(", ")}. Got "${obj.billing_model}".`
+        );
+      }
+    }
+  } else {
+    obj.include_billing = false;
   }
 
   return obj as unknown as LaunchblocksConfig;

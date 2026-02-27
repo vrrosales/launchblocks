@@ -4,7 +4,7 @@ import Handlebars from "handlebars";
 import type { LaunchblocksConfig } from "./config-writer.js";
 import { getTemplatesDir } from "./template-utils.js";
 
-const SQL_FILES = [
+const BASE_SQL_FILES = [
   "001_roles_and_permissions.sql",
   "002_users_and_profiles.sql",
   "003_prompt_templates.sql",
@@ -20,9 +20,14 @@ export async function renderSql(
   const migrationsDir = path.join(outputDir, "schemas", "migrations");
   await fs.ensureDir(migrationsDir);
 
+  const sqlFiles = [...BASE_SQL_FILES];
+  if (config.include_billing) {
+    sqlFiles.push("005_billing.sql");
+  }
+
   const created: string[] = [];
 
-  for (const sqlFile of SQL_FILES) {
+  for (const sqlFile of sqlFiles) {
     const templatePath = path.join(
       templatesDir,
       "schemas",

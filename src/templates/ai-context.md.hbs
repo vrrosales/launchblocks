@@ -8,7 +8,7 @@
 
 ## 1. Project Overview
 
-**{{app_name}}** is a full-stack web application built with the Launchblocks stack. It provides user authentication, role-based access control, an LLM gateway with provider abstraction, prompt template management, and a full audit trail for every LLM call.
+**{{app_name}}** is a full-stack web application built with the Launchblocks stack. It provides user authentication, role-based access control, an LLM gateway with provider abstraction, prompt template management, and a full audit trail for every LLM call{{#if include_billing}}, plus Stripe-powered billing and subscription management{{/if}}.
 
 - **App slug:** `{{slug}}`
 - **Hosting:** Vercel (Next.js App Router)
@@ -54,6 +54,13 @@ SUPABASE_SERVICE_ROLE_KEY=<your-service-role-key>
 {{/each}}
 # LLM Service
 LLM_SERVICE_URL=http://localhost:8000
+{{#if include_billing}}
+
+# Stripe
+STRIPE_SECRET_KEY=<sk_test_your-stripe-key>
+STRIPE_WEBHOOK_SECRET=<whsec_your-webhook-secret>
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=<pk_test_your-stripe-key>
+{{/if}}
 
 # App
 NEXT_PUBLIC_APP_NAME={{app_name}}
@@ -624,9 +631,56 @@ Build a dashboard for viewing, filtering, and exporting LLM usage data.
 
 Same as audit dashboard but filtered to the current user. Does not require `view_audit_log` permission — users can always see their own usage.
 
+{{#if include_billing}}
 ---
 
-## 13. API Response Format
+## 13. Module 8: Billing
+
+### Goal
+Integrate Stripe for {{#if is_billing_both}}subscription plans and usage-based billing{{else}}{{#if is_subscription}}subscription-based billing with tiered plans{{else}}usage-based billing per LLM call{{/if}}{{/if}}.
+
+### Screens
+
+| Route | Page | Access |
+|---|---|---|
+| `/dashboard/billing` | Billing Overview | Any authenticated user |
+| `/dashboard/billing/plans` | Plan Selection | Any authenticated user |
+| `/admin/billing` | Billing Admin | `manage_settings` permission |
+
+### API Routes
+
+| Method | Route | Description |
+|---|---|---|
+| POST | `/api/billing/checkout` | Create Stripe Checkout Session |
+| POST | `/api/billing/portal` | Create Stripe Customer Portal session |
+| GET | `/api/billing/subscription` | Get current user's subscription |
+| GET | `/api/billing/plans` | List active plans |
+| POST | `/api/billing/webhook` | Stripe webhook handler |
+{{#if is_usage_based}}
+| GET | `/api/billing/usage` | Get current user's usage |
+{{/if}}
+
+### Database Tables
+
+- `subscription_plans` — Plan definitions with features, limits, and Stripe Price IDs
+- `user_subscriptions` — User-to-plan mapping with Stripe subscription data
+- `billing_events` — Stripe event log for idempotent webhook handling
+{{#if is_usage_based}}
+- `usage_records` — Per-period usage tracking for metered billing
+{{/if}}
+
+### Implementation Notes
+
+- Stripe SDK (`stripe`) handles all payment operations
+- Webhook handler verifies signatures and processes events idempotently
+- Plan gating restricts LLM calls and prompt creation based on plan limits
+- Customer Portal provides self-service subscription management
+- See `specs/08-billing.md` for complete implementation tasks and test specifications
+
+{{/if}}
+---
+
+## {{#if include_billing}}14{{else}}13{{/if}}. API Response Format
 
 All API routes must return consistent JSON shapes.
 
@@ -681,7 +735,7 @@ All API routes must return consistent JSON shapes.
 
 ---
 
-## 14. Implementation Order
+## {{#if include_billing}}15{{else}}14{{/if}}. Implementation Order
 
 Modules must be implemented in this order due to dependencies:
 
@@ -707,18 +761,27 @@ User Management    LLM Gateway
     └──────────────┴───────┘
               │
               ▼
+{{#if include_billing}}
+          Module 8:
+          Billing
+              │
+              ▼
+{{/if}}
           COMPLETE
 ```
 
 ### Implementation Sequence
 
 1. **Module 1 — Project Setup** — No dependencies. Scaffold the project, install packages, configure clients.
-2. **Module 2 — Database** — Depends on Module 1 (needs Supabase config). Run all 4 SQL migrations in order.
+2. **Module 2 — Database** — Depends on Module 1 (needs Supabase config). Run all {{#if include_billing}}5{{else}}4{{/if}} SQL migrations in order.
 3. **Module 3 — Authentication** — Depends on Modules 1+2. Build auth UI and callback routes.
 4. **Module 4 — User Management** — Depends on Module 3. Build admin panel for user CRUD.
 5. **Module 5 — LLM Gateway** — Depends on Module 3. Set up the Python LLM microservice (FastAPI + Celeste) and the Next.js proxy route.
 6. **Module 6 — Prompt Management** — Depends on Module 5. Build prompt CRUD and test runner.
 7. **Module 7 — LLM Audit Trail** — Depends on Module 5. Build audit dashboard and export.
+{{#if include_billing}}
+8. **Module 8 — Billing** — Depends on Modules 5+6. Integrate Stripe billing, plan gating, and subscription management.
+{{/if}}
 
 ### Spec Structure
 
@@ -735,16 +798,19 @@ Start with Module 1 Task 1.1, then proceed through each task in order. After com
 After each module, verify:
 
 - [ ] **Module 1:** `GET /api/health` returns 200, Supabase client connects, middleware redirects work
-- [ ] **Module 2:** All 4 migrations run without errors, `roles` table has {{role_names_joined}}
+- [ ] **Module 2:** All {{#if include_billing}}5{{else}}4{{/if}} migrations run without errors, `roles` table has {{role_names_joined}}
 - [ ] **Module 3:** Can sign up, log in, log out, reset password{{#if require_approval}}, pending user sees `/pending`{{/if}}
 - [ ] **Module 4:** Admin can list users, change roles{{#if require_approval}}, approve pending users{{/if}}, suspend/reactivate
 - [ ] **Module 5:** Python microservice runs (`GET /health` returns ok), Next.js proxy calls provider via Celeste, returns response, logs to audit
 - [ ] **Module 6:** Can create/edit/delete prompts, test runner works, versioning increments
 - [ ] **Module 7:** Audit dashboard shows data, filters work, CSV export downloads
+{{#if include_billing}}
+- [ ] **Module 8:** Stripe checkout works, webhooks update subscription, plan gating restricts features
+{{/if}}
 
 ---
 
-## 15. File Reference
+## {{#if include_billing}}16{{else}}15{{/if}}. File Reference
 
 These files are generated by Launchblocks and available in the `launchblocks/` directory:
 
@@ -756,6 +822,9 @@ These files are generated by Launchblocks and available in the `launchblocks/` d
 | `schemas/migrations/002_users_and_profiles.sql` | User profiles table and signup trigger |
 | `schemas/migrations/003_prompt_templates.sql` | Prompt templates table |
 | `schemas/migrations/004_llm_audit_log.sql` | Audit log table and summary view |
+{{#if include_billing}}
+| `schemas/migrations/005_billing.sql` | Billing tables: plans, subscriptions, events |
+{{/if}}
 | `schemas/sample-env.md` | Environment variable reference |
 | `references/supabase-auth-patterns.md` | Supabase Auth code examples |
 | `references/vercel-deploy-checklist.md` | Deployment checklist |
