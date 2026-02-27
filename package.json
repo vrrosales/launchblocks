@@ -1,6 +1,6 @@
 {
   "name": "launchblocks",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Spec-Driven Development (SDD) tool for AI-powered applications",
   "type": "module",
   "bin": {
