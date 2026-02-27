@@ -42,6 +42,17 @@ export function registerHelpers(): void {
       }
     }
   );
+  Handlebars.registerHelper(
+    "taskId",
+    (moduleNumber: number, taskIndex: number) => `${moduleNumber}.${taskIndex}`
+  );
+  Handlebars.registerHelper(
+    "verifyStep",
+    (text: string) =>
+      typeof text === "string"
+        ? new Handlebars.SafeString(`**Verify:** ${text}`)
+        : ""
+  );
 }
 
 export function buildTemplateContext(

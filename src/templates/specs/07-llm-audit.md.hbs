@@ -358,17 +358,89 @@ Same page as the main dashboard but pre-filtered to errors and timeouts. The log
 
 Simplified version of the dashboard scoped to the current user. No admin permission required.
 
-## Implementation Checklist
+## Implementation Tasks
 
-1. Create `GET /api/admin/audit` with filtering and pagination
-2. Create `GET /api/admin/audit/summary` with aggregated metrics
-3. Create `GET /api/admin/audit/export` with CSV streaming
-4. Create `GET /api/user/audit` for personal usage
-5. Add permission middleware (`view_audit_log` for admin routes, `export_audit_log` for export)
-6. Build the dashboard page with summary cards
-7. Integrate a charting library and build the 5 recommended charts
-8. Build the filterable, paginated log table
-9. Build the CSV export with proper headers and streaming
-10. Build the personal usage page (`/dashboard/usage`)
-11. Add error-focused filtering view
-12. Test with various date ranges, filters, and export sizes
+Complete these tasks in order. Each task builds on the previous ones.
+
+### Task 7.1: Build Audit List API
+Implement `GET /api/admin/audit` with filtering (date range, provider, model, user, status, template) and pagination. Join with `user_profiles` for email/name and `prompt_templates` for slug.
+**Verify:** Call the API with default parameters and confirm paginated audit entries are returned with user and template details.
+
+### Task 7.2: Build Audit Summary API
+Implement `GET /api/admin/audit/summary` using the `llm_audit_summary` view. Return totals (calls, tokens, cost, error rate, avg latency), by_day, by_provider, by_model, and by_user breakdowns.
+**Verify:** Call the summary API and confirm the totals match the raw data in `llm_audit_log`.
+
+### Task 7.3: Build CSV Export API
+Implement `GET /api/admin/audit/export` that streams a CSV response. Include columns: id, timestamp, user_email, provider, model, input_tokens, output_tokens, total_tokens, estimated_cost, latency_ms, status, error_message, template_slug. Limit to 100,000 rows.
+**Verify:** Call the export endpoint and confirm a valid CSV file is downloaded with correct headers and data.
+
+### Task 7.4: Build Personal Usage API
+Implement `GET /api/user/audit` that returns the current user's own audit entries. No special permission required — RLS handles scoping.
+**Verify:** Call the API as a regular user and confirm only their own audit entries are returned.
+
+### Task 7.5: Add Permission Middleware
+Add `view_audit_log` permission check to admin audit routes. Add `export_audit_log` check to the export route. Personal usage route requires only authentication.
+**Verify:** A user without `view_audit_log` receives 403 on admin audit routes. Any authenticated user can access personal usage.
+
+### Task 7.6: Build Dashboard Page with Summary Cards
+Create `/admin/audit` with date range selector (preset buttons: Today, Last 7 Days, Last 30 Days, Custom), filter bar (provider, model, user, status), and summary metric cards (Total Calls, Total Tokens, Total Cost, Error Rate, Avg Latency).
+**Verify:** The dashboard loads with correct summary metrics for the selected date range.
+
+### Task 7.7: Integrate Charts
+Add a charting library (Recharts, Chart.js, or similar) and build the recommended charts: Daily Usage Over Time, Token Distribution, Cost by Provider, Latency Distribution, and Error Rate Over Time.
+**Verify:** Charts render with data from the summary API and update when filters change.
+
+### Task 7.8: Build Filterable Log Table
+Add a paginated table of individual audit entries below the charts. Columns: Timestamp, User, Template, Provider, Model, Tokens (in/out), Cost, Latency, Status. Support sorting by any column.
+**Verify:** The table loads with paginated data, filters match the dashboard filters, and sorting works on all columns.
+
+### Task 7.9: Build CSV Export Functionality
+Add an "Export" button to the dashboard that downloads filtered audit data as CSV. Pass current filters to the export endpoint. Show a loading indicator during download.
+**Verify:** Apply filters, click Export, and confirm the downloaded CSV contains only the filtered data.
+
+### Task 7.10: Build Personal Usage Page
+Create `/dashboard/usage` with summary cards (My Total Calls, My Total Tokens, My Total Cost) and a table of recent LLM calls. No admin permission required.
+**Verify:** A regular user sees their own usage data. The page does not show other users' data.
+
+### Task 7.11: Build Error Review View
+Add error-focused filtering (pre-filter to `status IN ('error', 'timeout')`) accessible via `/admin/audit?status=error`. Highlight error messages in red in the log table.
+**Verify:** Navigate to the error view and confirm only error and timeout entries are displayed.
+
+---
+
+## Test Specifications
+
+### Unit Tests
+- [ ] Date range filter correctly converts preset labels to start/end dates
+- [ ] CSV formatter correctly escapes commas and quotes in field values
+- [ ] CSV formatter formats timestamps as ISO 8601
+- [ ] CSV formatter formats cost with 6 decimal places
+- [ ] Pagination calculates correct offset and limit from page/per_page params
+- [ ] Summary card calculations match expected aggregations
+
+### Integration Tests
+- [ ] Audit list API returns entries filtered by date range
+- [ ] Audit list API returns entries filtered by provider
+- [ ] Audit list API returns entries filtered by status
+- [ ] Audit list API returns entries filtered by user_id
+- [ ] Audit list API joins user email and template slug correctly
+- [ ] Audit summary API returns correct totals matching raw data
+- [ ] Audit summary `by_day` breakdown matches daily aggregation from the view
+{{#if has_multiple_providers}}
+- [ ] Audit summary `by_provider` breakdown shows data for each configured provider
+{{/if}}
+- [ ] CSV export streams data without loading all rows into memory
+- [ ] CSV export respects the 100,000 row limit
+- [ ] CSV export includes correct headers
+- [ ] Personal usage API returns only the authenticated user's entries (RLS enforced)
+- [ ] `view_audit_log` permission is required for admin audit routes
+- [ ] `export_audit_log` permission is required for the export route
+
+### E2E Tests
+- [ ] Admin opens audit dashboard → sees summary cards with correct data → charts render
+- [ ] Admin applies date range filter → summary cards and charts update → log table filters
+- [ ] Admin applies provider filter → all dashboard components reflect the filter
+- [ ] Admin clicks Export → CSV downloads with filtered data → file opens correctly in spreadsheet
+- [ ] Admin switches to error view → only error/timeout entries shown
+- [ ] Regular user opens personal usage page → sees only their own calls
+- [ ] Regular user cannot access `/admin/audit` (redirected or shown 403)

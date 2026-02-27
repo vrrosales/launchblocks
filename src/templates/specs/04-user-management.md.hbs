@@ -547,3 +547,93 @@ Show confirmation dialogs for destructive actions:
 | Self-suspension attempt | 400 | "You cannot suspend your own account." |
 | Self-role-change attempt | 400 | "You cannot change your own role." |
 | Database error | 500 | "An unexpected error occurred. Please try again." |
+
+---
+
+## Implementation Tasks
+
+Complete these tasks in order. Each task builds on the previous ones.
+
+### Task 4.1: Create Admin Layout and Navigation
+Build an admin layout component with sidebar navigation linking to Users and Permissions pages. Restrict access to admin roles ({{admin_roles_joined}}).
+**Verify:** Navigating to `/admin` as a non-admin user returns a 403 or redirects. An admin user sees the admin layout with navigation.
+
+### Task 4.2: Build User List API
+Implement `GET /api/admin/users` with pagination, search (by name/email), and filters (by role, status). Include the `manage_users` permission check.
+**Verify:** Call the API as an admin user and confirm paginated user data is returned with correct total count.
+
+### Task 4.3: Build User List Page
+Create `/admin/users` with a paginated, searchable, filterable table. Display columns: Name, Email, Role (badge), Status (color-coded badge), Joined (relative time), and Actions.
+**Verify:** The user list loads with correct data, search filters results, and role/status filters work.
+
+### Task 4.4: Build User Detail API
+Implement `GET /api/admin/users/:id` and `PATCH /api/admin/users/:id` with validation. Enforce `manage_roles` for role changes. Prevent self-role-change and self-suspension.
+**Verify:** Fetch a user by ID and confirm all profile fields are returned. Update a user's name and confirm the change persists.
+
+### Task 4.5: Build User Detail / Edit Page
+Create `/admin/users/[id]` with an editable form for full name, role (dropdown), status (dropdown), and metadata. Show read-only fields (ID, email, created, updated).
+**Verify:** Edit a user's full name, save, and confirm the change appears in the user list.
+
+### Task 4.6: Implement Suspend and Unsuspend
+Build `POST /api/admin/users/:id/suspend` and `POST /api/admin/users/:id/unsuspend` endpoints. Add safety guards: cannot suspend self, confirmation warning for `{{owner_role}}`.
+**Verify:** Suspend a user and confirm their status changes to `suspended`. Unsuspend and confirm status returns to `approved`.
+
+### Task 4.7: Build Permission Matrix Display
+Create a read-only page or section showing all roles and their assigned permissions in a matrix table format.
+**Verify:** The matrix displays all roles ({{role_names_joined}}) with their correct permissions checked.
+
+{{#if require_approval}}
+### Task 4.8: Build Approval Workflow
+Add a prominent pending-users queue on the user list (default view when pending users exist). Implement `POST /api/admin/users/:id/approve` and `POST /api/admin/users/:id/reject`. Build bulk approval via `POST /api/admin/users/bulk-approve`.
+**Verify:** Approve a pending user and confirm their status changes to `approved`. Reject a pending user and confirm their profile is removed.
+
+### Task 4.9: Build Confirmation Dialogs
+Add confirmation dialogs for destructive actions: suspend, reject, and `{{owner_role}}` role assignment. Dialogs should clearly explain the impact.
+**Verify:** Attempting to suspend a user shows a confirmation dialog. Canceling the dialog does not change the user's status.
+{{else}}
+### Task 4.8: Build Confirmation Dialogs
+Add confirmation dialogs for destructive actions: suspend and `{{owner_role}}` role assignment. Dialogs should clearly explain the impact.
+**Verify:** Attempting to suspend a user shows a confirmation dialog. Canceling the dialog does not change the user's status.
+{{/if}}
+
+---
+
+## Test Specifications
+
+### Unit Tests
+- [ ] Permission check middleware correctly identifies `manage_users` holders
+- [ ] Permission check middleware correctly identifies `manage_roles` holders
+- [ ] User validation rejects invalid role names
+- [ ] User validation rejects invalid status values
+- [ ] Self-suspension prevention returns 400
+- [ ] Self-role-change prevention returns 400
+
+### Integration Tests
+- [ ] `GET /api/admin/users` returns paginated results with correct total count
+- [ ] Search filter matches users by name (case-insensitive)
+- [ ] Search filter matches users by email (case-insensitive)
+- [ ] Role filter returns only users with the specified role
+- [ ] Status filter returns only users with the specified status
+- [ ] `PATCH /api/admin/users/:id` updates user profile in database
+- [ ] Role change requires `manage_roles` permission (returns 403 without it)
+- [ ] Suspend sets status to `suspended` and user loses access on next request
+- [ ] Unsuspend sets status to `approved` and user regains access
+- [ ] Non-admin user receives 403 on all admin endpoints
+{{#if require_approval}}
+- [ ] Approve changes status from `pending_approval` to `approved`
+- [ ] Reject removes the user's profile record
+- [ ] Bulk approve updates multiple users in a single operation
+- [ ] Approve endpoint rejects users not in `pending_approval` status
+{{/if}}
+
+### E2E Tests
+- [ ] Admin navigates to user list → searches for a user → opens detail → edits name → saves
+- [ ] Admin changes a user's role and the change is reflected in the user list
+- [ ] Admin suspends a user → user cannot log in → admin unsuspends → user can log in
+{{#if require_approval}}
+- [ ] Admin views pending queue → approves a user → user can now access the dashboard
+- [ ] Admin views pending queue → rejects a user → user is removed
+- [ ] Admin bulk-approves multiple pending users
+{{/if}}
+- [ ] Non-admin user cannot access `/admin/users` (redirected or shown 403)
+- [ ] Permission matrix displays correct role-permission mappings

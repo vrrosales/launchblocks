@@ -316,17 +316,79 @@ This function is imported by the gateway service, not exposed as a separate API 
 
 Same form as the editor but for creating a new template.
 
-## Implementation Checklist
+## Implementation Tasks
 
-1. Create the `prompt_template_versions` table (migration or inline SQL)
-2. Implement CRUD API routes under `/api/admin/prompts`
-3. Add permission middleware checking `manage_prompts`
-4. Build the template list page with search, filtering, and pagination
-5. Build the template editor page with the split-pane prompt editor
-6. Implement variable detection (regex parse `\{{variable_name}}` from template text)
-7. Implement version history (save previous state before each update)
-8. Build the test panel (sends request through LLM Gateway)
-9. Implement tag management with autocomplete
-10. Add slug validation (unique, lowercase, alphanumeric with hyphens)
-11. Wire up activation/deactivation toggle
-12. Test the full flow: create template, edit it, test it, use it via the gateway
+Complete these tasks in order. Each task builds on the previous ones.
+
+### Task 6.1: Create prompt_template_versions Table
+Run the SQL to create the `prompt_template_versions` table (see the Version History section above). Add the `UNIQUE(template_id, version)` constraint and FK to `prompt_templates`.
+**Verify:** Query `SELECT * FROM information_schema.tables WHERE table_name = 'prompt_template_versions';` and confirm the table exists.
+
+### Task 6.2: Build CRUD API Routes
+Implement the 5 API endpoints under `/api/admin/prompts`: GET (list), GET (single with versions), POST (create), PATCH (update with versioning), DELETE (soft-delete, hard-delete for `{{owner_role}}`).
+**Verify:** Create a template via POST, retrieve it via GET, update it via PATCH (confirm version increments), and soft-delete via DELETE.
+
+### Task 6.3: Add Permission Middleware
+Add `manage_prompts` permission check to all `/api/admin/prompts` endpoints. Authenticated users can read active templates without this permission (for gateway use).
+**Verify:** A user without `manage_prompts` receives 403 on POST/PATCH/DELETE. An authenticated user can still read active templates.
+
+### Task 6.4: Build Template List Page
+Create `/admin/prompts` with a table showing: Name, Slug, Provider, Model, Status (active/inactive badge), Version, Updated. Add search bar, filter dropdowns, and pagination.
+**Verify:** The list loads with all templates, search filters by name/slug, and provider/status filters work correctly.
+
+### Task 6.5: Build Template Editor Page
+Create `/admin/prompts/:id` with a form for all template properties. Include split-pane layout: system prompt on top, user prompt template on bottom. Add model configuration section (provider dropdown, model dropdown, temperature slider, max_tokens input).
+**Verify:** Open an existing template, edit the system prompt, save, and confirm the version number increments.
+
+### Task 6.6: Implement Variable Detection
+Parse template text for `\{{variable_name}}` patterns using regex. Display detected variables in a panel next to the prompt editor for documentation purposes.
+**Verify:** Enter a template with `\{{article_text}}` and `\{{max_length}}` and confirm both variables are detected and displayed.
+
+### Task 6.7: Implement Version History
+When a template is edited, save the current state to `prompt_template_versions` before applying the update. Display version history in a sidebar on the editor page, allowing read-only viewing of previous versions.
+**Verify:** Edit a template 3 times, then view version history showing versions 1, 2, and 3 with timestamps.
+
+### Task 6.8: Build Test Panel
+Add a "Test" button to the editor that opens a panel with input fields for each detected variable. Clicking "Run Test" sends the request through the LLM Gateway. Display the response, token usage, and cost.
+**Verify:** Open a template, fill in test variables, run the test, and confirm the LLM response appears with usage stats.
+
+### Task 6.9: Implement Tag Management
+Add a tags input with autocomplete (sourced from existing tags in the database). Store tags in the `prompt_templates` table. Add tag-based filtering to the list page.
+**Verify:** Add tags to a template, save, and confirm the tags appear in the list view and can be used as filters.
+
+### Task 6.10: Wire Up Activation/Deactivation
+Add an active/inactive toggle to the editor page. Toggling increments the version. Inactive templates are hidden from the LLM Gateway but remain visible in the admin list.
+**Verify:** Deactivate a template and confirm the LLM Gateway returns 404 when referencing its slug. Reactivate and confirm the gateway resolves it again.
+
+---
+
+## Test Specifications
+
+### Unit Tests
+- [ ] Slug validation accepts lowercase alphanumeric with hyphens (`summarize-article`)
+- [ ] Slug validation rejects uppercase characters, spaces, and special characters
+- [ ] Variable detection regex correctly extracts `\{{variable_name}}` patterns
+- [ ] Variable detection handles templates with no variables (returns empty array)
+- [ ] Variable detection handles templates with duplicate variables (deduplicates)
+- [ ] Temperature validation rejects values outside 0–2 range
+- [ ] Max tokens validation rejects values outside 1–128000 range
+
+### Integration Tests
+- [ ] POST creates a template at version 1 with correct fields
+- [ ] PATCH saves current state to `prompt_template_versions` before updating
+- [ ] PATCH increments the `version` field
+- [ ] DELETE (soft) sets `is_active = false` without removing the record
+- [ ] DELETE (hard, `{{owner_role}}` only) permanently removes the template and all versions
+- [ ] GET list returns only active templates for non-admin users
+- [ ] GET list returns all templates (active and inactive) for `manage_prompts` holders
+- [ ] Slug uniqueness constraint prevents duplicate slugs
+- [ ] Version history endpoint returns all previous versions in descending order
+- [ ] Permission middleware blocks CRUD operations for users without `manage_prompts`
+- [ ] Tag filtering returns only templates with the specified tag
+
+### E2E Tests
+- [ ] Create new template → edit it twice → view version history showing 3 versions
+- [ ] Create template → test it via the test panel → confirm LLM response and audit log entry
+- [ ] Create template → deactivate → gateway returns 404 → reactivate → gateway resolves it
+- [ ] Create template → use it via the LLM Gateway with variables → confirm interpolated prompt reaches the LLM
+- [ ] `{{owner_role}}` can hard-delete a template; other admin roles cannot

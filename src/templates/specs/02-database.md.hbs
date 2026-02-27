@@ -341,3 +341,67 @@ Use the admin client (service role) only when RLS must be bypassed, such as inse
 const admin = createAdminClient();
 const { error } = await admin.from('llm_audit_log').insert({ ... });
 ```
+
+---
+
+## Implementation Tasks
+
+Complete these tasks in order. Each task builds on the previous ones.
+
+### Task 2.1: Run Migration 001 — Roles and Permissions
+Execute `001_roles_and_permissions.sql` in the Supabase SQL Editor. This creates the `roles` and `role_permissions` tables, seeds role data ({{role_names_joined}}), seeds permissions, and creates the `has_permission()` and `has_role()` helper functions.
+**Verify:** Query `SELECT * FROM public.roles;` and confirm all roles are present with correct `is_owner_role` and `is_default_role` flags.
+
+### Task 2.2: Run Migration 002 — User Profiles
+Execute `002_users_and_profiles.sql` in the Supabase SQL Editor. This creates the `user_profiles` table, the `handle_new_user()` trigger, the `update_updated_at()` trigger, and RLS policies.
+**Verify:** Create a test user via Supabase Auth and confirm a `user_profiles` row is auto-created with `role = '{{default_role}}'` and `status = '{{approval_status}}'`.
+
+### Task 2.3: Run Migration 003 — Prompt Templates
+Execute `003_prompt_templates.sql` in the Supabase SQL Editor. This creates the `prompt_templates` table with RLS policies and indexes.
+**Verify:** Insert a test prompt template and confirm RLS allows authenticated users to read active templates.
+
+### Task 2.4: Run Migration 004 — LLM Audit Log
+Execute `004_llm_audit_log.sql` in the Supabase SQL Editor. This creates the `llm_audit_log` table, `llm_audit_summary` view, and related indexes.
+**Verify:** Insert a test audit row and query the `llm_audit_summary` view to confirm aggregation works.
+
+### Task 2.5: Verify Helper Functions
+Test `has_permission()` and `has_role()` with known data. Confirm the `handle_new_user()` trigger fires on new auth signups and creates the correct profile.
+**Verify:** Run `SELECT public.has_permission('<user-id>', 'manage_users');` and confirm it returns the expected boolean based on the user's role.
+
+### Task 2.6: Generate TypeScript Types
+Run `npx supabase gen types typescript --project-id <id> > src/lib/supabase/database.types.ts` to generate type-safe database types for use in the application.
+**Verify:** Import `Database` type in a TypeScript file and confirm the types include all tables (`roles`, `role_permissions`, `user_profiles`, `prompt_templates`, `llm_audit_log`).
+
+---
+
+## Test Specifications
+
+### Unit Tests
+- [ ] `has_permission()` returns `true` for `{{owner_role}}` with any permission
+- [ ] `has_permission()` returns `false` for `{{default_role}}` with `manage_users` (if not assigned)
+- [ ] `has_role()` returns `true` for a user with the correct role
+- [ ] `has_role()` returns `false` for a user with a different role
+- [ ] `update_updated_at()` trigger sets `updated_at` to current time on UPDATE
+
+### Integration Tests
+- [ ] `handle_new_user()` trigger creates a `user_profiles` row on `auth.users` INSERT
+- [ ] Auto-created profile has `role = '{{default_role}}'` and `status = '{{approval_status}}'`
+- [ ] RLS policy `roles_select_authenticated` allows any authenticated user to read roles
+- [ ] RLS policy `roles_modify_owner` restricts role modification to `{{owner_role}}` users
+- [ ] RLS policy `users_select_own` allows users to read only their own profile
+- [ ] RLS policy `users_select_admin` allows `manage_users` holders to read all profiles
+- [ ] RLS policy `users_update_own` prevents users from changing their own `role` or `status`
+- [ ] RLS policy `prompts_select_authenticated` returns only active templates to non-admin users
+- [ ] RLS policy `audit_select_own` restricts users to their own audit entries
+- [ ] `llm_audit_summary` view correctly aggregates by day, provider, and model
+{{#if require_approval}}
+- [ ] New signup creates profile with `status = 'pending_approval'`
+{{else}}
+- [ ] New signup creates profile with `status = 'approved'`
+{{/if}}
+
+### E2E Tests
+- [ ] All 4 migrations run sequentially without errors on a fresh Supabase project
+- [ ] Seed data matches expected roles ({{role_names_joined}}) and permissions
+- [ ] Foreign key relationships enforce referential integrity (e.g., deleting a role cascades to `role_permissions`)
+- [ ] Indexes improve query performance for common access patterns (user by role, audit by date)

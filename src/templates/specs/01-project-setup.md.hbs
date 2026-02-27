@@ -300,3 +300,71 @@ Establish these patterns from the start:
 - Never leak stack traces or internal details in production responses
 - Log errors server-side with enough context to debug (user ID, endpoint, timestamp)
 - Client-side: display user-friendly toast messages for errors, not raw error strings
+
+---
+
+## Implementation Tasks
+
+Complete these tasks in order. Each task builds on the previous ones.
+
+### Task 1.1: Initialize Next.js Project
+Create a new Next.js project with App Router, TypeScript, and Tailwind CSS. Use the `src/` directory convention.
+**Verify:** Run `npm run dev` and confirm the default Next.js page loads at `http://localhost:3000`.
+
+### Task 1.2: Install Core Dependencies
+Install all required packages: `@supabase/supabase-js`, `@supabase/ssr`, `zod`, and initialize `shadcn/ui` with `npx shadcn@latest init`. Set up the `services/llm/` Python directory with a `requirements.txt` containing `celeste-ai`, `fastapi`, `uvicorn`.
+**Verify:** Run `npm ls @supabase/supabase-js @supabase/ssr zod` and confirm all are installed. Confirm `services/llm/requirements.txt` exists.
+
+### Task 1.3: Create Supabase Client Utilities
+Create three client files: `lib/supabase/client.ts` (browser), `lib/supabase/server.ts` (server with cookies), and `lib/supabase/admin.ts` (service role). Follow the patterns in Section 1.4.
+**Verify:** Import each client in a test file and confirm TypeScript compiles without errors.
+
+### Task 1.4: Configure Environment Variables
+Create `.env.local` with all required variables (Supabase URL, keys, LLM provider keys, app config). Create `.env.example` with placeholder values. Add `.env.local` to `.gitignore`.
+**Verify:** Confirm `.env.example` exists with all required keys and `.env.local` is gitignored.
+
+### Task 1.5: Create Health Check Endpoint
+Implement `GET /api/health` that returns `{ status: "ok", app: "{{app_name}}", timestamp, supabase: "connected" }`. Include a lightweight Supabase connectivity check.
+**Verify:** Run `curl http://localhost:3000/api/health` and confirm it returns a valid JSON response with `"status": "ok"`.
+
+### Task 1.6: Set Up Next.js Middleware
+Create `middleware.ts` at the project root that refreshes the Supabase session on every request, protects `/dashboard/*` and `/admin/*` routes, and redirects unauthenticated users to `/login`.
+{{#if require_approval}}
+Include logic to redirect authenticated but `pending_approval` users to `/pending-approval`.
+{{/if}}
+**Verify:** Navigate to `/dashboard` without a session and confirm you are redirected to `/login`.
+
+### Task 1.7: Create Root Layout and Landing Page
+Set up `app/layout.tsx` with HTML structure, fonts, and Tailwind. Create `app/page.tsx` as a landing page or redirect to `/dashboard`.
+**Verify:** The app loads without errors and the root layout renders correctly.
+
+### Task 1.8: Configure Vercel Deployment
+Set all environment variables in the Vercel dashboard. Deploy the project and verify the health check endpoint.
+**Verify:** `GET https://your-app.vercel.app/api/health` returns `{"status": "ok", "supabase": "connected"}`.
+
+---
+
+## Test Specifications
+
+### Unit Tests
+- [ ] Browser Supabase client initializes without throwing
+- [ ] Server Supabase client initializes without throwing
+- [ ] Admin Supabase client initializes without throwing
+- [ ] Health check endpoint returns correct JSON shape (`status`, `app`, `timestamp`, `supabase`)
+- [ ] Health check returns 503 when Supabase is unreachable
+
+### Integration Tests
+- [ ] Health check endpoint reaches Supabase and returns `"supabase": "connected"`
+- [ ] Middleware redirects unauthenticated requests from `/dashboard` to `/login`
+- [ ] Middleware allows unauthenticated access to `/login` and `/signup`
+{{#if require_approval}}
+- [ ] Middleware redirects `pending_approval` users to `/pending-approval`
+{{/if}}
+- [ ] Environment variables are correctly loaded in both server and client contexts
+
+### E2E Tests
+- [ ] Application starts successfully with `npm run dev`
+- [ ] Health check endpoint is accessible at `/api/health`
+- [ ] Root page loads without JavaScript errors
+- [ ] Protected routes redirect to login when not authenticated
+- [ ] Public routes (login, signup) are accessible without authentication

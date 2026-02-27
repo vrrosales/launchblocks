@@ -720,6 +720,16 @@ User Management    LLM Gateway
 6. **Module 6 — Prompt Management** — Depends on Module 5. Build prompt CRUD and test runner.
 7. **Module 7 — LLM Audit Trail** — Depends on Module 5. Build audit dashboard and export.
 
+### Spec Structure
+
+Each module spec in `specs/` contains three sections:
+
+1. **Feature specifications** — Requirements, data models, API contracts, and UI descriptions
+2. **Implementation Tasks** — Numbered, ordered tasks to complete in sequence. Each task starts with an action verb and includes a **Verify** step describing how to confirm completion.
+3. **Test Specifications** — Concrete test definitions organized into Unit, Integration, and E2E categories with checkboxes.
+
+Start with Module 1 Task 1.1, then proceed through each task in order. After completing all tasks in a module, run the test specifications to verify correctness before moving to the next module.
+
 ### Verification Checklist
 
 After each module, verify:

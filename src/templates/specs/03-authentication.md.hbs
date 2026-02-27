@@ -360,3 +360,97 @@ Implement the following auth-related pages:
 | `user_already_exists` | 409 | "An account with this email already exists." |
 | `weak_password` | 400 | "Password must be at least 8 characters." |
 | `over_request_rate_limit` | 429 | "Too many attempts. Please try again later." |
+
+---
+
+## Implementation Tasks
+
+Complete these tasks in order. Each task builds on the previous ones.
+
+### Task 3.1: Configure Supabase Auth Client
+Set up the Supabase auth integration using `@supabase/ssr`. Ensure the browser and server clients are configured for auth flows with proper cookie handling.
+**Verify:** Import the client in a test page and confirm `supabase.auth.getSession()` returns without error.
+
+### Task 3.2: Build Signup Page
+Create the `/signup` page with email, password, and full name fields. Wire up `supabase.auth.signUp()` with the full name passed as `options.data.full_name`. Include form validation (email format, password minimum 8 characters).
+{{#if require_approval}}
+Add a note below the form: "New accounts require administrator approval."
+{{/if}}
+**Verify:** Submit the form and confirm a new user appears in both Supabase Auth dashboard and the `user_profiles` table with `role = '{{default_role}}'`.
+
+### Task 3.3: Build Login Page
+Create the `/login` page with email and password fields. Implement `supabase.auth.signInWithPassword()`. Add links to "Forgot password?" and "Sign up". Map Supabase error codes to user-friendly messages.
+**Verify:** Log in with the user created in Task 3.2 and confirm the session is established and user is redirected to `/dashboard`.
+
+### Task 3.4: Implement Auth Callback Route
+Create `app/auth/callback/route.ts` to handle OAuth redirects and email confirmation links. Exchange the auth code for a session using `supabase.auth.exchangeCodeForSession()`.
+**Verify:** Trigger an email confirmation flow and confirm the callback route correctly establishes a session.
+
+### Task 3.5: Build Password Reset Flow
+Create `/forgot-password` (email input, sends reset link) and `/reset-password` (new password form). Use `supabase.auth.resetPasswordForEmail()` and `supabase.auth.updateUser()`.
+**Verify:** Request a password reset, click the email link, set a new password, and confirm login works with the new password.
+
+### Task 3.6: Implement Session Middleware
+{{#if require_approval}}
+Update the Next.js middleware to check both auth session AND approval status. Redirect `pending_approval` users to `/pending-approval`. Redirect `suspended` users to `/login` with an error. Allow `approved` users through to protected routes.
+**Verify:** A `pending_approval` user is redirected to `/pending-approval` after login. An `approved` user reaches `/dashboard`.
+{{else}}
+Update the Next.js middleware to check auth session on protected routes. Redirect `suspended` users to `/login` with an error. Allow `approved` users through.
+**Verify:** An unauthenticated request to `/dashboard` redirects to `/login`. An authenticated, approved user can access `/dashboard`.
+{{/if}}
+
+### Task 3.7: Implement Logout
+Add a sign-out button to the dashboard layout. Wire it to `supabase.auth.signOut()`, clear client-side state, and redirect to `/login`.
+**Verify:** Click the sign-out button and confirm the session is cleared and user is redirected to `/login`.
+
+{{#if require_approval}}
+### Task 3.8: Build Pending Approval Page
+Create the `/pending-approval` page showing an informational message: "Your account is pending approval." Include a "Log out" button. On page load, check current status — if approved, redirect to `/dashboard`.
+**Verify:** A `pending_approval` user sees the pending page. After an admin approves them (manually updating the DB), refreshing the page redirects to `/dashboard`.
+{{/if}}
+
+### Task 3.{{#if require_approval}}9{{else}}8{{/if}}: Add OAuth Provider Buttons (Optional)
+If OAuth providers are configured in Supabase Dashboard, add provider buttons to the login and signup pages using `supabase.auth.signInWithOAuth()`.
+**Verify:** Click an OAuth button and confirm the OAuth flow completes and a session is established.
+
+---
+
+## Test Specifications
+
+### Unit Tests
+- [ ] Signup form validates email format (rejects invalid emails)
+- [ ] Signup form validates password length (minimum 8 characters)
+- [ ] Signup form validates full name is not empty
+- [ ] Login form validates email and password are not empty
+- [ ] Password reset form validates matching password and confirmation
+- [ ] Error message mapping converts Supabase error codes to friendly messages
+- [ ] Auth callback route handles missing `code` parameter gracefully
+
+### Integration Tests
+- [ ] Signup creates both `auth.users` record and `user_profiles` row
+- [ ] Signup assigns `role = '{{default_role}}'` and `status = '{{approval_status}}'`
+- [ ] Login with valid credentials establishes a session and returns user data
+- [ ] Login with invalid credentials returns a user-friendly error
+- [ ] Password reset email is sent and contains a valid reset link
+- [ ] Password reset flow updates the password in Supabase Auth
+- [ ] Auth callback exchanges code for session successfully
+- [ ] Middleware refreshes session tokens on each request
+{{#if require_approval}}
+- [ ] Middleware redirects `pending_approval` users to `/pending-approval`
+- [ ] Middleware allows `approved` users to access `/dashboard`
+- [ ] Pending approval page redirects to `/dashboard` after approval
+{{else}}
+- [ ] Middleware allows `approved` users to access `/dashboard`
+{{/if}}
+- [ ] Middleware redirects `suspended` users to `/login` with error
+- [ ] Logout clears the session and redirects to `/login`
+
+### E2E Tests
+- [ ] Complete signup → {{#if require_approval}}pending approval → admin approves → {{/if}}login → access dashboard → logout flow
+- [ ] Complete forgot password → reset password → login with new password flow
+- [ ] Unauthenticated user cannot access any `/dashboard/*` or `/admin/*` route
+- [ ] Suspended user is blocked from accessing the application after login attempt
+{{#if require_approval}}
+- [ ] New signup lands on pending approval page, not dashboard
+- [ ] Admin approval enables the user to access the dashboard on next login
+{{/if}}

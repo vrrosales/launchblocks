@@ -362,20 +362,94 @@ src/app/api/llm/chat/
   route.ts                         -- POST handler (auth → template → proxy → audit)
 ```
 
-## Implementation Checklist
+## Implementation Tasks
 
-1. Create `services/llm/requirements.txt` with `celeste-ai`, `fastapi`, `uvicorn`
-2. Implement `services/llm/main.py` with `/generate`, `/stream`, and `/health` endpoints
-3. Configure Celeste SDK with provider API keys from environment variables
-4. Test the Python service standalone: `uvicorn main:app --reload`
-5. Create TypeScript types in `src/lib/llm/types.ts`
-6. Build the service client in `src/lib/llm/service-client.ts` (HTTP calls to Python)
-7. Build the pricing configuration in `src/lib/llm/cost-calculator.ts`
-8. Create the `POST /api/llm/chat` route handler in Next.js
-9. Add authorization middleware (role check for {{llm_access_roles_joined}})
-10. Add template resolution and variable interpolation (Supabase DB query)
-11. Add streaming support with SSE proxy chain
-12. Add audit logging (write to `llm_audit_log` via service role client)
-13. Add error handling and timeout logic (30s)
-14. Set `LLM_SERVICE_URL` environment variable in `.env.local` and Vercel
-15. Test with both template-based and ad-hoc calls, streaming and non-streaming
+Complete these tasks in order. Each task builds on the previous ones.
+
+### Task 5.1: Set Up Python Microservice
+Create `services/llm/` with `requirements.txt` (`celeste-ai`, `fastapi`, `uvicorn`), `main.py` (empty FastAPI app), and `.env`. Install dependencies with `pip install -r requirements.txt`.
+**Verify:** Run `uvicorn main:app --reload` and confirm the server starts without errors.
+
+### Task 5.2: Implement GET /health Endpoint
+Add a health check endpoint to the Python service that returns `{ "status": "ok" }`.
+**Verify:** `curl http://localhost:8000/health` returns `{"status": "ok"}` with HTTP 200.
+
+### Task 5.3: Implement POST /generate Endpoint
+Build the non-streaming LLM call endpoint. Accept `{ provider, model, messages, temperature, max_tokens }`, call the Celeste AI SDK, and return `{ content, usage, latency_ms }`. Add 30-second timeout and error handling.
+**Verify:** Send a test request with a simple prompt and confirm a valid LLM response is returned with usage data.
+
+### Task 5.4: Implement POST /stream Endpoint
+Build the streaming LLM call endpoint. Accept the same request body as `/generate`, return SSE (`text/event-stream`) with content chunks. The final chunk includes `done: true` with usage data.
+**Verify:** Send a streaming request and confirm content arrives as SSE chunks, ending with a `done: true` event.
+
+### Task 5.5: Create TypeScript Types and Service Client
+Create `src/lib/llm/types.ts` with shared interfaces (LLM request/response shapes) and `src/lib/llm/service-client.ts` with an HTTP client that calls the Python microservice endpoints.
+**Verify:** Import the service client and confirm TypeScript compiles without errors.
+
+### Task 5.6: Build Cost Calculator
+Create `src/lib/llm/cost-calculator.ts` with per-model pricing data and an `estimateCost(provider, model, inputTokens, outputTokens)` function. Reference `references/llm-pricing-table.md` for rates.
+**Verify:** Call `estimateCost("{{providers_display.[0].id}}", "gpt-4o", 1000, 500)` and confirm it returns a reasonable cost estimate.
+
+### Task 5.7: Create POST /api/llm/chat Route Handler
+Build the Next.js API route that orchestrates the full LLM call flow: parse request, authenticate user, check status, check role access, forward to Python service, receive response.
+**Verify:** Send a valid ad-hoc request to `/api/llm/chat` as an authenticated user and confirm an LLM response is returned.
+
+### Task 5.8: Add Authorization Middleware
+Implement role-based access control in the route handler. Only users with roles in the LLM access list ({{llm_access_roles_joined}}) can make calls. Return 403 for unauthorized roles.
+{{#if all_roles_have_llm}}
+**Verify:** Confirm all authenticated, approved users can make LLM calls.
+{{else}}
+**Verify:** Confirm users with unauthorized roles receive a 403 error when calling the gateway.
+{{/if}}
+
+### Task 5.9: Implement Template Resolution
+Add template-based call support. When `template_slug` is provided, load the template from `prompt_templates`, validate it is active, interpolate variables, and build the messages array.
+**Verify:** Create a prompt template, send a request with its slug and variables, and confirm the resolved prompt reaches the LLM.
+
+### Task 5.10: Add Streaming Proxy Support
+Implement SSE proxy in the Next.js route for streaming calls. Forward chunks from the Python service to the client, appending `estimated_cost` and `audit_id` to the final chunk.
+**Verify:** Send a streaming request through the Next.js route and confirm chunks arrive at the client in real-time.
+
+### Task 5.11: Add Audit Logging
+After every LLM call (success or failure), write an entry to `llm_audit_log` using the Supabase service role client. Log user_id, provider, model, tokens, cost, latency, and status.
+**Verify:** Make an LLM call and confirm a corresponding row appears in `llm_audit_log` with correct data.
+
+### Task 5.12: Configure Environment and Deploy
+Set `LLM_SERVICE_URL` in `.env.local` (for local dev) and in the Vercel dashboard (for production). Deploy the Python service to a Python-friendly platform.
+**Verify:** The Next.js route successfully proxies requests to the deployed Python service.
+
+---
+
+## Test Specifications
+
+### Unit Tests
+- [ ] `estimateCost()` returns correct cost for known model pricing
+- [ ] `estimateCost()` returns 0 for unknown models
+- [ ] Variable interpolation replaces `\{{variable}}` with provided values
+- [ ] Variable interpolation leaves unmatched `\{{variable}}` placeholders as-is
+- [ ] Request body validation rejects missing required fields
+- [ ] Request body validation accepts both template-based and ad-hoc call formats
+- [ ] Authorization check returns 403 for roles not in the LLM access list
+- [ ] Authorization check returns 401 for unauthenticated requests
+
+### Integration Tests
+- [ ] Python service `/generate` endpoint returns valid LLM response with usage data
+- [ ] Python service `/stream` endpoint returns SSE chunks with final usage summary
+- [ ] Python service returns structured error on provider failure (502)
+- [ ] Python service returns 504 on timeout
+- [ ] Next.js route resolves template by slug from the database
+- [ ] Next.js route returns 404 for inactive or non-existent templates
+- [ ] Next.js route writes audit entry on successful call
+- [ ] Next.js route writes audit entry with `status = 'error'` on LLM failure
+- [ ] Next.js route writes audit entry with `status = 'timeout'` on timeout
+- [ ] Streaming proxy forwards chunks correctly from Python service to client
+{{#if has_multiple_providers}}
+- [ ] Gateway correctly routes requests to different providers based on template configuration
+{{/if}}
+
+### E2E Tests
+- [ ] Template-based call: create template → send request with slug and variables → receive response → audit entry logged
+- [ ] Ad-hoc call: send raw messages → receive response → audit entry logged
+- [ ] Streaming call: send streaming request → receive SSE chunks → final chunk has usage data and audit_id
+- [ ] Error handling: send request with invalid API key → receive structured error → error logged in audit
+- [ ] Rate limit: verify 429 is returned and logged when provider rate-limits the request
