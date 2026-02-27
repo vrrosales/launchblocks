@@ -1,4 +1,5 @@
 import chalk from "chalk";
+import { outro, note } from "@clack/prompts";
 import type { SetupResult } from "../setup/types.js";
 import type { AiTool } from "../interview/types.js";
 import type { DryRunFile } from "../generator/index.js";
@@ -188,89 +189,7 @@ function stripAnsi(str: string): string {
   return str.replace(/\u001b\[[0-9;]*m/g, "");
 }
 
-function renderNextStepsBox(steps: string[]): string[] {
-  const lines: string[] = [];
-
-  // Measure the widest line to size the box
-  const allRawLines = [
-    "  Next steps:",
-    ...steps.map((s) => "  " + stripAnsi(s)),
-  ];
-  const maxContentWidth = Math.max(...allRawLines.map((l) => l.length));
-  const boxWidth = Math.max(50, maxContentWidth + 4); // 4 = 2 side padding
-
-  const top = chalk.dim("  ┌" + "─".repeat(boxWidth) + "┐");
-  const bottom = chalk.dim("  └" + "─".repeat(boxWidth) + "┘");
-  const empty = chalk.dim("  │") + " ".repeat(boxWidth) + chalk.dim("│");
-
-  const padLine = (content: string, rawLen: number): string => {
-    const padding = Math.max(0, boxWidth - rawLen);
-    return chalk.dim("  │") + " " + content + " ".repeat(padding) + chalk.dim("│");
-  };
-
-  lines.push(top);
-  lines.push(empty);
-
-  // Header
-  const header = chalk.bold.white("Next steps:");
-  lines.push(padLine(" " + header, 1 + "Next steps:".length));
-  lines.push(empty);
-
-  for (const step of steps) {
-    const raw = stripAnsi(step);
-    lines.push(padLine(" " + step, 1 + raw.length));
-  }
-
-  lines.push(empty);
-  lines.push(bottom);
-
-  return lines;
-}
-
 export const logger = {
-  banner() {
-    console.log();
-    console.log(
-      chalk.cyan(
-        "  ╔══════════════════════════════════════════════╗"
-      )
-    );
-    console.log(
-      chalk.cyan(
-        "  ║                                              ║"
-      )
-    );
-    console.log(
-      chalk.cyan("  ║") +
-        chalk.bold.white(
-          "   Launchblocks — Spec-Driven AI App Foundation"
-        ) +
-        chalk.cyan("║")
-    );
-    console.log(
-      chalk.cyan(
-        "  ║                                              ║"
-      )
-    );
-    console.log(
-      chalk.cyan("  ║") +
-        chalk.white(
-          "   Let's configure your project.              "
-        ) +
-        chalk.cyan("║")
-    );
-    console.log(
-      chalk.cyan(
-        "  ║                                              ║"
-      )
-    );
-    console.log(
-      chalk.cyan(
-        "  ╚══════════════════════════════════════════════╝"
-      )
-    );
-    console.log();
-  },
 
   step(label: string) {
     console.log(chalk.cyan(`\n  → ${label}\n`));
@@ -370,12 +289,11 @@ export const logger = {
       );
     }
 
-    // Next steps box
-    console.log();
+    // Next steps using @clack/prompts note()
     const steps = nextSteps(aiTool);
-    for (const line of renderNextStepsBox(steps)) {
-      console.log(line);
-    }
-    console.log();
+    const stepsContent = steps.map((s) => stripAnsi(s)).join("\n");
+    note(stepsContent, "Next steps");
+
+    outro("Project generated! See next steps above.");
   },
 };

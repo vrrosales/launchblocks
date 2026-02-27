@@ -1,4 +1,4 @@
-import inquirer from "inquirer";
+import { confirm, select, isCancel, cancel, log } from "@clack/prompts";
 import { logger } from "../utils/logger.js";
 import { installMcpServer, ensureGitignore } from "./install.js";
 import type { AiTool } from "../interview/types.js";
@@ -33,73 +33,73 @@ export async function guideService(
   const info = SERVICE_INFO[name];
   const toolName = TOOL_DISPLAY_NAME[aiTool] ?? "Claude Code";
 
-  logger.step(`${info.display} Setup`);
+  log.step(`${info.display} Setup`);
 
-  const { hasAccount } = await inquirer.prompt([
-    {
-      type: "confirm",
-      name: "hasAccount",
-      message: `Do you have a ${info.display} account?`,
-      default: true,
-    },
-  ]);
+  const hasAccount = await confirm({
+    message: `Do you have a ${info.display} account?`,
+    initialValue: true,
+  });
+
+  if (isCancel(hasAccount)) {
+    cancel("Operation cancelled.");
+    process.exit(0);
+  }
 
   if (!hasAccount) {
-    console.log();
-    logger.info("Create your free account:");
+    log.info("Create your free account:");
     logger.link(info.signupUrl);
     console.log();
 
-    const { created } = await inquirer.prompt([
-      {
-        type: "confirm",
-        name: "created",
-        message: `Have you created your ${info.display} account?`,
-        default: true,
-      },
-    ]);
+    const created = await confirm({
+      message: `Have you created your ${info.display} account?`,
+      initialValue: true,
+    });
+
+    if (isCancel(created)) {
+      cancel("Operation cancelled.");
+      process.exit(0);
+    }
 
     if (!created) {
-      logger.info(
+      log.info(
         `Skipping ${info.display} setup. You can configure it later.`
       );
       return { installed: false, scope: null };
     }
   }
 
-  console.log();
-  logger.info(
+  log.info(
     `After setup, authenticate in ${toolName} when it connects to the ${info.display} MCP server.`
   );
-  console.log();
 
   // Cursor only supports project-level MCP config
   if (aiTool === "cursor") {
-    logger.info(`Installing to .cursor/mcp.json`);
+    log.info(`Installing to .cursor/mcp.json`);
     await installMcpServer(name, "project", aiTool);
     await ensureGitignore(".cursor/mcp.json");
 
-    logger.success(`${info.display} MCP server configured in .cursor/mcp.json`);
+    log.success(`${info.display} MCP server configured in .cursor/mcp.json`);
     return { installed: true, scope: "project" };
   }
 
-  const { scope } = await inquirer.prompt([
-    {
-      type: "list",
-      name: "scope",
-      message: `Where should we install the ${info.display} MCP server?`,
-      choices: [
-        {
-          name: "Project level (.mcp.json in current directory)",
-          value: "project",
-        },
-        {
-          name: "User level (~/.claude.json — available in all projects)",
-          value: "user",
-        },
-      ],
-    },
-  ]);
+  const scope = await select({
+    message: `Where should we install the ${info.display} MCP server?`,
+    options: [
+      {
+        label: "Project level (.mcp.json in current directory)",
+        value: "project" as const,
+      },
+      {
+        label: "User level (~/.claude.json — available in all projects)",
+        value: "user" as const,
+      },
+    ],
+  });
+
+  if (isCancel(scope)) {
+    cancel("Operation cancelled.");
+    process.exit(0);
+  }
 
   await installMcpServer(name, scope, aiTool);
 
@@ -107,7 +107,7 @@ export async function guideService(
     await ensureGitignore();
   }
 
-  logger.success(`${info.display} MCP server configured in ${
+  log.success(`${info.display} MCP server configured in ${
     scope === "project" ? ".mcp.json" : "~/.claude.json"
   }`);
 

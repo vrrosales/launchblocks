@@ -1,21 +1,22 @@
-import inquirer from "inquirer";
+import { select, isCancel, cancel } from "@clack/prompts";
 
 export async function askSignupApproval(): Promise<boolean> {
-  const { requireApproval } = await inquirer.prompt([
-    {
-      type: "list",
-      name: "requireApproval",
-      message:
-        "Should new user signups require admin approval before accessing the app?",
-      choices: [
-        {
-          name: "Yes — new users wait for approval (recommended)",
-          value: true,
-        },
-        { name: "No — new users get immediate access", value: false },
-      ],
-    },
-  ]);
+  const requireApproval = await select({
+    message:
+      "Should new user signups require admin approval before accessing the app?",
+    options: [
+      {
+        label: "Yes — new users wait for approval (recommended)",
+        value: true,
+      },
+      { label: "No — new users get immediate access", value: false },
+    ],
+  });
+
+  if (isCancel(requireApproval)) {
+    cancel("Operation cancelled.");
+    process.exit(0);
+  }
 
   return requireApproval;
 }

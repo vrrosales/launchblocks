@@ -1,3 +1,4 @@
+import { intro, log } from "@clack/prompts";
 import type { InterviewAnswers } from "./types.js";
 import { askRoles } from "./questions/roles.js";
 import { askPermissions } from "./questions/permissions.js";
@@ -7,12 +8,11 @@ import { askLlmAccess } from "./questions/llm-access.js";
 import { askProviders } from "./questions/providers.js";
 import { askAppInfo } from "./questions/app-info.js";
 import { askAiTool } from "./questions/ai-tool.js";
-import { logger } from "../utils/logger.js";
 
 export async function runInterview(
   prefilled?: Partial<InterviewAnswers>
 ): Promise<InterviewAnswers> {
-  logger.banner();
+  intro("Launchblocks — Spec-Driven AI App Foundation");
 
   // Count how many questions we actually need to ask
   const steps: string[] = [];
@@ -36,7 +36,7 @@ export async function runInterview(
   // Q1: AI tool
   let aiTool = prefilled?.aiTool;
   if (!aiTool) {
-    logger.step(stepLabel("AI Tool"));
+    log.step(stepLabel("AI Tool"));
     aiTool = await askAiTool();
   }
 
@@ -45,7 +45,7 @@ export async function runInterview(
   let ownerRole = prefilled?.ownerRole;
   let defaultRole = prefilled?.defaultRole;
   if (!roles) {
-    logger.step(stepLabel("Roles"));
+    log.step(stepLabel("Roles"));
     const result = await askRoles();
     roles = result.roles;
     ownerRole = result.ownerRole;
@@ -54,42 +54,42 @@ export async function runInterview(
 
   // Q3: Permissions (only for custom roles — defaults come pre-configured)
   if (!prefilled?.roles) {
-    logger.step(stepLabel("Permissions"));
+    log.step(stepLabel("Permissions"));
     await askPermissions(roles);
   }
 
   // Q4: Signup approval
   let requireApproval = prefilled?.requireApproval;
   if (requireApproval === undefined) {
-    logger.step(stepLabel("Signup Behavior"));
+    log.step(stepLabel("Signup Behavior"));
     requireApproval = await askSignupApproval();
   }
 
   // Q5: Admin panel access
   let adminRoles = prefilled?.adminRoles;
   if (!adminRoles) {
-    logger.step(stepLabel("Admin Panel Access"));
+    log.step(stepLabel("Admin Panel Access"));
     adminRoles = await askAdminAccess(roles);
   }
 
   // Q6: LLM access
   let llmAccessRoles = prefilled?.llmAccessRoles;
   if (!llmAccessRoles) {
-    logger.step(stepLabel("LLM Access"));
+    log.step(stepLabel("LLM Access"));
     llmAccessRoles = await askLlmAccess(roles);
   }
 
   // Q7: LLM providers
   let llmProviders = prefilled?.llmProviders;
   if (!llmProviders) {
-    logger.step(stepLabel("LLM Providers"));
+    log.step(stepLabel("LLM Providers"));
     llmProviders = await askProviders();
   }
 
   // Q8: App name
   let appName = prefilled?.appName;
   if (!appName) {
-    logger.step(stepLabel("App Info"));
+    log.step(stepLabel("App Info"));
     appName = await askAppInfo();
   }
 

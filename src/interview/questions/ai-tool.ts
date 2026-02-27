@@ -1,22 +1,23 @@
-import inquirer from "inquirer";
+import { select, isCancel, cancel } from "@clack/prompts";
 import type { AiTool } from "../types.js";
 
 export async function askAiTool(): Promise<AiTool> {
-  const { aiTool } = await inquirer.prompt([
-    {
-      type: "list",
-      name: "aiTool",
-      message:
-        "Which AI coding tool will you use to implement the project?\n  (We'll generate the right context file)\n",
-      choices: [
-        { name: "Claude Code (CLAUDE.md)", value: "claude" },
-        { name: "Cursor (.cursorrules)", value: "cursor" },
-        { name: "Codex / OpenAI (AGENTS.md)", value: "codex" },
-        { name: "Gemini CLI (GEMINI.md)", value: "gemini" },
-        { name: "All of the above", value: "all" },
-      ],
-    },
-  ]);
+  const aiTool = await select({
+    message:
+      "Which AI coding tool will you use to implement the project?\n  (We'll generate the right context file)",
+    options: [
+      { label: "Claude Code (CLAUDE.md)", value: "claude" as const },
+      { label: "Cursor (.cursorrules)", value: "cursor" as const },
+      { label: "Codex / OpenAI (AGENTS.md)", value: "codex" as const },
+      { label: "Gemini CLI (GEMINI.md)", value: "gemini" as const },
+      { label: "All of the above", value: "all" as const },
+    ],
+  });
+
+  if (isCancel(aiTool)) {
+    cancel("Operation cancelled.");
+    process.exit(0);
+  }
 
   return aiTool;
 }

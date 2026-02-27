@@ -1,4 +1,4 @@
-import inquirer from "inquirer";
+import { select, text, isCancel, cancel } from "@clack/prompts";
 import {
   ALL_PERMISSIONS,
   DEFAULT_ROLES,
@@ -13,21 +13,22 @@ export async function askRoles(): Promise<{
   ownerRole: string;
   defaultRole: string;
 }> {
-  const { roleChoice } = await inquirer.prompt([
-    {
-      type: "list",
-      name: "roleChoice",
-      message:
-        'What roles does your application need?\n  Launchblocks requires an "owner" role (full access) and a "default" role (assigned to new signups).\n',
-      choices: [
-        {
-          name: "Use defaults: super_admin, admin, user  (recommended)",
-          value: "defaults",
-        },
-        { name: "Custom roles", value: "custom" },
-      ],
-    },
-  ]);
+  const roleChoice = await select({
+    message:
+      'What roles does your application need?\n  Launchblocks requires an "owner" role (full access) and a "default" role (assigned to new signups).',
+    options: [
+      {
+        label: "Use defaults: super_admin, admin, user  (recommended)",
+        value: "defaults" as const,
+      },
+      { label: "Custom roles", value: "custom" as const },
+    ],
+  });
+
+  if (isCancel(roleChoice)) {
+    cancel("Operation cancelled.");
+    process.exit(0);
+  }
 
   if (roleChoice === "defaults") {
     return {
@@ -37,35 +38,41 @@ export async function askRoles(): Promise<{
     };
   }
 
-  const { roleInput } = await inquirer.prompt([
-    {
-      type: "input",
-      name: "roleInput",
-      message:
-        'Enter your roles (comma-separated, e.g. "owner, editor, viewer"):',
-      validate: validateRoles,
+  const roleInput = await text({
+    message:
+      'Enter your roles (comma-separated, e.g. "owner, editor, viewer"):',
+    validate(value) {
+      const result = validateRoles(value);
+      if (result !== true) return result;
     },
-  ]);
+  });
+
+  if (isCancel(roleInput)) {
+    cancel("Operation cancelled.");
+    process.exit(0);
+  }
 
   const roleNames = parseCommaSeparated(roleInput);
 
-  const { ownerRole } = await inquirer.prompt([
-    {
-      type: "list",
-      name: "ownerRole",
-      message: "Which role is the owner role (highest privilege)?",
-      choices: roleNames,
-    },
-  ]);
+  const ownerRole = await select({
+    message: "Which role is the owner role (highest privilege)?",
+    options: roleNames.map((name) => ({ label: name, value: name })),
+  });
 
-  const { defaultRole } = await inquirer.prompt([
-    {
-      type: "list",
-      name: "defaultRole",
-      message: "Which role is assigned to new signups by default?",
-      choices: roleNames,
-    },
-  ]);
+  if (isCancel(ownerRole)) {
+    cancel("Operation cancelled.");
+    process.exit(0);
+  }
+
+  const defaultRole = await select({
+    message: "Which role is assigned to new signups by default?",
+    options: roleNames.map((name) => ({ label: name, value: name })),
+  });
+
+  if (isCancel(defaultRole)) {
+    cancel("Operation cancelled.");
+    process.exit(0);
+  }
 
   // Build RoleConfig array — owner gets all perms, others need to be configured later
   const roles: RoleConfig[] = roleNames.map((name) => ({

@@ -1,6 +1,6 @@
 import path from "node:path";
 import fs from "fs-extra";
-import inquirer from "inquirer";
+import { select, isCancel, cancel, intro } from "@clack/prompts";
 import { runInterview } from "../interview/runner.js";
 import {
   ALL_PERMISSIONS,
@@ -123,7 +123,7 @@ async function generateFromConfig(
   configPath: string,
   opts: CLIOptions
 ): Promise<void> {
-  logger.banner();
+  intro("Launchblocks — Spec-Driven AI App Foundation");
   logger.step(`Reading config from ${configPath}...`);
 
   const config = await readConfig(configPath);
@@ -167,21 +167,24 @@ export async function initCommand(opts: CLIOptions): Promise<void> {
       "launchblocks.config.yaml"
     );
     if (!opts.defaults && (await fs.pathExists(existingConfigPath))) {
-      const { action } = await inquirer.prompt([
-        {
-          type: "list",
-          name: "action",
-          message:
-            "Found existing launchblocks.config.yaml. What would you like to do?",
-          choices: [
-            {
-              name: "Regenerate from existing config",
-              value: "regenerate",
-            },
-            { name: "Start fresh (new interview)", value: "fresh" },
-          ],
-        },
-      ]);
+      intro("Launchblocks — Spec-Driven AI App Foundation");
+
+      const action = await select({
+        message:
+          "Found existing launchblocks.config.yaml. What would you like to do?",
+        options: [
+          {
+            label: "Regenerate from existing config",
+            value: "regenerate" as const,
+          },
+          { label: "Start fresh (new interview)", value: "fresh" as const },
+        ],
+      });
+
+      if (isCancel(action)) {
+        cancel("Operation cancelled.");
+        process.exit(0);
+      }
 
       if (action === "regenerate") {
         await generateFromConfig(existingConfigPath, opts);
@@ -201,7 +204,7 @@ export async function initCommand(opts: CLIOptions): Promise<void> {
         answers.llmAccessRoles = answers.roles.map((r) => r.name);
       }
 
-      logger.banner();
+      intro("Launchblocks — Spec-Driven AI App Foundation");
       logger.success("Using recommended defaults.");
     } else {
       // Build partial answers from any individual flags
@@ -244,14 +247,6 @@ export async function initCommand(opts: CLIOptions): Promise<void> {
     // Show summary
     logger.summary(createdFiles, setupResult, answers.aiTool);
   } catch (error) {
-    if (
-      error instanceof Error &&
-      error.message.includes("User force closed")
-    ) {
-      console.log("\n");
-      logger.info("Cancelled. No files were created.");
-      process.exit(0);
-    }
     logger.error(
       error instanceof Error ? error.message : "An unexpected error occurred."
     );

@@ -1,4 +1,9 @@
-import inquirer from "inquirer";
+import {
+  confirm,
+  multiselect,
+  isCancel,
+  cancel,
+} from "@clack/prompts";
 import type { RoleConfig } from "../types.js";
 
 export async function askAdminAccess(
@@ -26,29 +31,31 @@ export async function askAdminAccess(
     if (ownerRole) inferred.push(ownerRole.name);
   }
 
-  const { confirmed } = await inquirer.prompt([
-    {
-      type: "confirm",
-      name: "confirmed",
-      message: `These roles will see the admin panel: ${inferred.join(", ")}\n  Is that correct?`,
-      default: true,
-    },
-  ]);
+  const confirmed = await confirm({
+    message: `These roles will see the admin panel: ${inferred.join(", ")}\n  Is that correct?`,
+    initialValue: true,
+  });
+
+  if (isCancel(confirmed)) {
+    cancel("Operation cancelled.");
+    process.exit(0);
+  }
 
   if (confirmed) return inferred;
 
-  const { adminRoles } = await inquirer.prompt([
-    {
-      type: "checkbox",
-      name: "adminRoles",
-      message: "Select roles that should see the admin panel:",
-      choices: roles.map((r) => ({
-        name: r.name,
-        value: r.name,
-        checked: inferred.includes(r.name),
-      })),
-    },
-  ]);
+  const adminRoles = await multiselect({
+    message: "Select roles that should see the admin panel:",
+    options: roles.map((r) => ({
+      label: r.name,
+      value: r.name,
+    })),
+    required: true,
+  });
+
+  if (isCancel(adminRoles)) {
+    cancel("Operation cancelled.");
+    process.exit(0);
+  }
 
   return adminRoles;
 }

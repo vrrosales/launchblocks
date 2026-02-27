@@ -465,10 +465,11 @@ Start with Module 1 tasks, then proceed to Module 2, and so on.
 
 ---
 
-## Phase 5: Prompt Library Migration
+## Phase 5: Prompt Library Migration ✅ COMPLETED
 
 **Gaps addressed:** inquirer → @clack/prompts
 **Estimated scope:** `src/interview/runner.ts`, all 8 question files, `src/setup/guide.ts`, `package.json`
+**Completed:** 2026-02-27
 
 ### Problem
 
@@ -573,14 +574,14 @@ All `@clack/prompts` calls can return a cancel symbol. Wrap every prompt with `i
 
 ### Acceptance Criteria
 
-- [ ] `inquirer` fully removed from `package.json` and all source files
-- [ ] All 8 interview questions work with @clack/prompts
-- [ ] MCP setup prompts work with @clack/prompts
-- [ ] Ctrl+C at any prompt exits gracefully with a message (no stack trace)
-- [ ] Visual output matches @clack styling (dotted lines, colored indicators)
-- [ ] Banner uses `intro()`, final message uses `outro()`
-- [ ] All validation functions still work (role names, app name, etc.)
-- [ ] Interview flow is functionally identical to before (same questions, same logic)
+- [x] `inquirer` fully removed from `package.json` and all source files
+- [x] All 8 interview questions work with @clack/prompts
+- [x] MCP setup prompts work with @clack/prompts
+- [x] Ctrl+C at any prompt exits gracefully with a message (no stack trace)
+- [x] Visual output matches @clack styling (dotted lines, colored indicators)
+- [x] Banner uses `intro()`, final message uses `outro()`
+- [x] All validation functions still work (role names, app name, etc.)
+- [x] Interview flow is functionally identical to before (same questions, same logic)
 
 ---
 
