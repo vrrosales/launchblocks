@@ -3,6 +3,59 @@ import { fileURLToPath } from "node:url";
 import Handlebars from "handlebars";
 import type { LaunchblocksConfig } from "./config-writer.js";
 
+export interface ProviderDisplay {
+  id: string;
+  name: string;
+  env_var: string;
+  env_placeholder: string;
+  env_docs_url: string;
+}
+
+export interface RolePermissionSummary {
+  name: string;
+  display_name: string;
+  is_owner: boolean;
+  is_default: boolean;
+  permissions: string[];
+  permissions_list: string;
+  has_permissions: boolean;
+}
+
+export interface PermissionFlat {
+  role: string;
+  permission: string;
+}
+
+export interface TemplateContext {
+  app_name: string;
+  slug: string;
+  roles: LaunchblocksConfig['roles'];
+  role_names: string[];
+  role_names_joined: string;
+  owner_role: string;
+  owner_role_display: string;
+  default_role: string;
+  default_role_display: string;
+  require_approval: boolean;
+  approval_status: string;
+  admin_roles: string[];
+  admin_roles_joined: string;
+  llm_access_roles: string[];
+  llm_access_roles_joined: string;
+  llm_providers: string[];
+  providers_display: ProviderDisplay[];
+  ai_tool: string;
+  permissions_flat: PermissionFlat[];
+  role_permission_summary: RolePermissionSummary[];
+  has_multiple_providers: boolean;
+  all_roles_have_llm: boolean;
+  include_billing: boolean;
+  billing_model: string | undefined;
+  is_subscription: boolean;
+  is_usage_based: boolean;
+  is_billing_both: boolean;
+}
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -57,7 +110,7 @@ export function registerHelpers(): void {
 
 export function buildTemplateContext(
   config: LaunchblocksConfig
-): Record<string, unknown> {
+): TemplateContext {
   const ownerRoleObj = config.roles.find((r) => r.is_owner);
   const defaultRoleObj = config.roles.find((r) => r.is_default);
 

@@ -3,6 +3,7 @@ import fs from "fs-extra";
 import Handlebars from "handlebars";
 import type { LaunchblocksConfig } from "./config-writer.js";
 import { getTemplatesDir } from "./template-utils.js";
+import type { TemplateContext } from "./template-utils.js";
 
 interface ToolFile {
   template: string;
@@ -24,7 +25,7 @@ const TOOL_FILES: ToolFile[] = [
 export async function renderContextFiles(
   outputDir: string,
   config: LaunchblocksConfig,
-  context: Record<string, unknown>
+  context: TemplateContext
 ): Promise<string[]> {
   const templatesDir = getTemplatesDir();
   const created: string[] = [];

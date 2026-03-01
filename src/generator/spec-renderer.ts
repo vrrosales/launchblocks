@@ -3,6 +3,7 @@ import fs from "fs-extra";
 import Handlebars from "handlebars";
 import type { LaunchblocksConfig } from "./config-writer.js";
 import { getTemplatesDir } from "./template-utils.js";
+import type { TemplateContext } from "./template-utils.js";
 
 const BASE_SPEC_FILES = [
   "01-project-setup.md",
@@ -17,7 +18,7 @@ const BASE_SPEC_FILES = [
 export async function renderSpecs(
   outputDir: string,
   config: LaunchblocksConfig,
-  context: Record<string, unknown>
+  context: TemplateContext
 ): Promise<string[]> {
   const templatesDir = getTemplatesDir();
   const specsDir = path.join(outputDir, "specs");

@@ -3,6 +3,7 @@ import fs from "fs-extra";
 import Handlebars from "handlebars";
 import type { LaunchblocksConfig } from "./config-writer.js";
 import { getTemplatesDir } from "./template-utils.js";
+import type { TemplateContext } from "./template-utils.js";
 
 const BASE_SQL_FILES = [
   "001_roles_and_permissions.sql",
@@ -14,7 +15,7 @@ const BASE_SQL_FILES = [
 export async function renderSql(
   outputDir: string,
   config: LaunchblocksConfig,
-  context: Record<string, unknown>
+  context: TemplateContext
 ): Promise<string[]> {
   const templatesDir = getTemplatesDir();
   const migrationsDir = path.join(outputDir, "schemas", "migrations");
