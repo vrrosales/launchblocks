@@ -12,7 +12,7 @@ This audit works bottom-up through VibeKit's pipeline: fix the type foundations 
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation Hardening** - Replace unsafe type casts and manual validation with typed interfaces and error-accumulating validation
+- [x] **Phase 1: Foundation Hardening** - Replace unsafe type casts and manual validation with typed interfaces and error-accumulating validation (completed 2026-03-01)
 - [ ] **Phase 2: CLI Hardening** - Fix graceful shutdown, flag combinations, and scoped regeneration so every CLI path behaves correctly
 - [ ] **Phase 3: Template & SQL Correctness** - Ensure every generated spec and SQL migration is complete, valid, and safe to re-run
 - [ ] **Phase 4: Test Coverage** - Build automated tests that prove correctness end-to-end and catch regressions
@@ -31,8 +31,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 2 plans
 
 Plans:
-- [ ] 01-01-PLAN.md -- Define TemplateContext interface and refactor config validation to accumulate all errors
-- [ ] 01-02-PLAN.md -- Eliminate all unsafe `as` type casts across source files
+- [x] 01-01-PLAN.md -- Define TemplateContext interface and refactor config validation to accumulate all errors
+- [x] 01-02-PLAN.md -- Eliminate all unsafe `as` type casts across source files
 
 ### Phase 2: CLI Hardening
 **Goal**: Every CLI command and flag combination produces correct output and handles cancellation gracefully instead of hard-exiting
@@ -87,7 +87,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation Hardening | 0/2 | Planned | - |
+| 1. Foundation Hardening | 2/2 | Complete | 2026-03-01 |
 | 2. CLI Hardening | 0/0 | Not started | - |
 | 3. Template & SQL Correctness | 0/0 | Not started | - |
 | 4. Test Coverage | 0/0 | Not started | - |
