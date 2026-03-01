@@ -17,6 +17,7 @@ import { readConfig } from "../generator/config-reader.js";
 import { generateProject } from "../generator/index.js";
 import { runSetup } from "../setup/runner.js";
 import { logger } from "../utils/logger.js";
+import { CancellationError } from "../utils/errors.js";
 import { parseCommaSeparated } from "../utils/validation.js";
 import { toDisplayName } from "../utils/slug.js";
 
@@ -211,7 +212,7 @@ export async function initCommand(opts: CLIOptions): Promise<void> {
 
       if (isCancel(action)) {
         cancel("Operation cancelled.");
-        process.exit(0);
+        throw new CancellationError();
       }
 
       if (action === "regenerate") {
@@ -275,6 +276,9 @@ export async function initCommand(opts: CLIOptions): Promise<void> {
     // Show summary
     logger.summary(createdFiles, setupResult, answers.aiTool, answers.includeBilling);
   } catch (error) {
+    if (error instanceof CancellationError) {
+      process.exit(0);
+    }
     logger.error(
       error instanceof Error ? error.message : "An unexpected error occurred."
     );

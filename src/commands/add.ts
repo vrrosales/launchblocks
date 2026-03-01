@@ -6,6 +6,7 @@ import { generateProject } from "../generator/index.js";
 import { parseCommaSeparated } from "../utils/validation.js";
 import { toDisplayName } from "../utils/slug.js";
 import { logger } from "../utils/logger.js";
+import { CancellationError } from "../utils/errors.js";
 
 interface AddRoleOptions {
   permissions?: string;
@@ -79,7 +80,7 @@ export async function addRoleCommand(
 
       if (isCancel(selected)) {
         cancel("Operation cancelled.");
-        process.exit(0);
+        throw new CancellationError();
       }
 
       permissions = selected;
@@ -146,6 +147,9 @@ export async function addRoleCommand(
 
     outro("Done!");
   } catch (error) {
+    if (error instanceof CancellationError) {
+      process.exit(0);
+    }
     logger.error(
       error instanceof Error ? error.message : "An unexpected error occurred."
     );
@@ -206,6 +210,9 @@ export async function addProviderCommand(
 
     outro("Done!");
   } catch (error) {
+    if (error instanceof CancellationError) {
+      process.exit(0);
+    }
     logger.error(
       error instanceof Error ? error.message : "An unexpected error occurred."
     );

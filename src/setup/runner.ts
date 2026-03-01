@@ -3,6 +3,7 @@ import { detectMcpServers } from "./detect.js";
 import { guideService } from "./guide.js";
 import type { McpServerStatus, SetupResult } from "./types.js";
 import type { AiTool } from "../interview/types.js";
+import { CancellationError } from "../utils/errors.js";
 
 function locationLabel(status: McpServerStatus, aiTool: AiTool): string {
   if (!status.installed) return "not configured";
@@ -44,12 +45,20 @@ export async function runSetup(aiTool: AiTool): Promise<SetupResult | null> {
   if (!detected.vercel.installed) services.push("vercel");
 
   for (const name of services) {
-    const { installed, scope } = await guideService(name, aiTool);
-    if (installed && scope) {
-      result[name] = { name, installed: true, location: scope };
-      result.installed.push(name);
-    } else {
-      result.skipped.push(name);
+    try {
+      const { installed, scope } = await guideService(name, aiTool);
+      if (installed && scope) {
+        result[name] = { name, installed: true, location: scope };
+        result.installed.push(name);
+      } else {
+        result.skipped.push(name);
+      }
+    } catch (error) {
+      if (error instanceof CancellationError) {
+        result.skipped.push(name);
+        continue;
+      }
+      throw error;
     }
   }
 
