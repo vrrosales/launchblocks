@@ -44,11 +44,11 @@ Plans:
   3. Running `launchblocks add role analyst` on an existing project updates the config, specs, SQL, and context files -- and the result matches what `init` would produce with the role pre-included
   4. Running `launchblocks add provider anthropic` on an existing project updates all output files consistently, same as if the provider was included at init time
   5. The `add role` and `add provider` commands validate the mutated config before passing it to the generator, rejecting invalid additions (e.g., duplicate role name) with a clear error
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 02-01: TBD
-- [ ] 02-02: TBD
+- [ ] 02-01-PLAN.md -- Replace all process.exit(0) with CancellationError throw pattern for graceful shutdown
+- [ ] 02-02-PLAN.md -- Fix --defaults flag merging and add post-mutation validateConfig to add commands
 
 ### Phase 3: Template & SQL Correctness
 **Goal**: Every generated spec and SQL migration is complete (no blank values from missing template variables), syntactically valid, and safe to re-run
@@ -88,6 +88,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation Hardening | 2/2 | Complete | 2026-03-01 |
-| 2. CLI Hardening | 0/0 | Not started | - |
+| 2. CLI Hardening | 0/2 | Planned | - |
 | 3. Template & SQL Correctness | 0/0 | Not started | - |
 | 4. Test Coverage | 0/0 | Not started | - |
