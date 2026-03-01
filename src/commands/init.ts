@@ -10,7 +10,6 @@ import {
   type BillingModel,
   type CLIOptions,
   type InterviewAnswers,
-  type Permission,
   type RoleConfig,
 } from "../interview/types.js";
 import { buildConfig } from "../generator/config-writer.js";
@@ -84,7 +83,7 @@ function buildAnswersFromFlags(opts: CLIOptions): Partial<InterviewAnswers> {
       is_owner_role: name === ownerRole,
       is_default_role: name === defaultRole,
       permissions:
-        name === ownerRole ? ([...ALL_PERMISSIONS] as Permission[]) : [],
+        name === ownerRole ? [...ALL_PERMISSIONS] : [],
     }));
 
     partial.roles = roles;

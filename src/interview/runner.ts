@@ -116,8 +116,8 @@ export async function runInterview(
   return {
     appName,
     roles,
-    ownerRole: ownerRole as string,
-    defaultRole: defaultRole as string,
+    ownerRole: ownerRole ?? roles[0].name,
+    defaultRole: defaultRole ?? roles[roles.length - 1].name,
     requireApproval,
     adminRoles,
     llmAccessRoles,

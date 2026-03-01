@@ -2,7 +2,6 @@ import { select, text, isCancel, cancel } from "@clack/prompts";
 import {
   ALL_PERMISSIONS,
   DEFAULT_ROLES,
-  type Permission,
   type RoleConfig,
 } from "../types.js";
 import { validateRoles, parseCommaSeparated } from "../../utils/validation.js";
@@ -81,7 +80,7 @@ export async function askRoles(): Promise<{
     is_owner_role: name === ownerRole,
     is_default_role: name === defaultRole,
     permissions:
-      name === ownerRole ? ([...ALL_PERMISSIONS] as Permission[]) : [],
+      name === ownerRole ? [...ALL_PERMISSIONS] : [],
   }));
 
   return { roles, ownerRole, defaultRole };

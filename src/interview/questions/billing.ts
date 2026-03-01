@@ -33,15 +33,15 @@ export async function askBilling(): Promise<{
     options: [
       {
         label: "Subscription (monthly/yearly plans)",
-        value: "subscription" as BillingModel,
+        value: "subscription" as const,
       },
       {
         label: "Usage-based (pay per LLM call)",
-        value: "usage" as BillingModel,
+        value: "usage" as const,
       },
       {
         label: "Both (subscriptions + usage overages)",
-        value: "both" as BillingModel,
+        value: "both" as const,
       },
     ],
   });

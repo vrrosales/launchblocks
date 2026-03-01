@@ -2,7 +2,6 @@ import { multiselect, isCancel, cancel, log } from "@clack/prompts";
 import {
   ALL_PERMISSIONS,
   PERMISSION_LABELS,
-  type Permission,
   type RoleConfig,
 } from "../types.js";
 
@@ -30,6 +29,6 @@ export async function askPermissions(roles: RoleConfig[]): Promise<void> {
       process.exit(0);
     }
 
-    role.permissions = perms as Permission[];
+    role.permissions = perms;
   }
 }
