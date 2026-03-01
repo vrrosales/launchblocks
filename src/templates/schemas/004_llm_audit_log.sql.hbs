@@ -6,7 +6,7 @@
 -- LLM AUDIT LOG TABLE
 -- ============================================================
 
-CREATE TABLE public.llm_audit_log (
+CREATE TABLE IF NOT EXISTS public.llm_audit_log (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES public.user_profiles(id),
   prompt_template_id uuid REFERENCES public.prompt_templates(id),
@@ -27,22 +27,26 @@ CREATE TABLE public.llm_audit_log (
 ALTER TABLE public.llm_audit_log ENABLE ROW LEVEL SECURITY;
 
 -- Users with view_audit_log permission can read logs
+DROP POLICY IF EXISTS "audit_select_admin" ON public.llm_audit_log;
 CREATE POLICY "audit_select_admin" ON public.llm_audit_log
   FOR SELECT TO authenticated
   USING (public.has_permission(auth.uid(), 'view_audit_log'));
 
 -- Users can view their own audit entries
+DROP POLICY IF EXISTS "audit_select_own" ON public.llm_audit_log;
 CREATE POLICY "audit_select_own" ON public.llm_audit_log
   FOR SELECT TO authenticated
   USING (user_id = auth.uid());
 
 -- Only the system (via service role) inserts audit entries
 -- Application code should use the service role key for inserts
+DROP POLICY IF EXISTS "audit_insert_service" ON public.llm_audit_log;
 CREATE POLICY "audit_insert_service" ON public.llm_audit_log
   FOR INSERT TO service_role
   WITH CHECK (true);
 
 -- Also allow authenticated users to insert (for client-side logging)
+DROP POLICY IF EXISTS "audit_insert_authenticated" ON public.llm_audit_log;
 CREATE POLICY "audit_insert_authenticated" ON public.llm_audit_log
   FOR INSERT TO authenticated
   WITH CHECK (user_id = auth.uid());
@@ -51,11 +55,11 @@ CREATE POLICY "audit_insert_authenticated" ON public.llm_audit_log
 -- INDEXES
 -- ============================================================
 
-CREATE INDEX idx_llm_audit_user ON public.llm_audit_log(user_id);
-CREATE INDEX idx_llm_audit_provider ON public.llm_audit_log(provider);
-CREATE INDEX idx_llm_audit_created ON public.llm_audit_log(created_at DESC);
-CREATE INDEX idx_llm_audit_template ON public.llm_audit_log(prompt_template_id);
-CREATE INDEX idx_llm_audit_status ON public.llm_audit_log(status);
+CREATE INDEX IF NOT EXISTS idx_llm_audit_user ON public.llm_audit_log(user_id);
+CREATE INDEX IF NOT EXISTS idx_llm_audit_provider ON public.llm_audit_log(provider);
+CREATE INDEX IF NOT EXISTS idx_llm_audit_created ON public.llm_audit_log(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_llm_audit_template ON public.llm_audit_log(prompt_template_id);
+CREATE INDEX IF NOT EXISTS idx_llm_audit_status ON public.llm_audit_log(status);
 
 -- ============================================================
 -- AUDIT SUMMARY VIEW
