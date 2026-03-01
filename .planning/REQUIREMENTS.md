@@ -27,10 +27,10 @@ Requirements for this quality audit. Each maps to roadmap phases.
 
 ### Template & SQL Correctness
 
-- [ ] **TMPL-01**: All Handlebars template variables resolve to non-empty values (no silent empty strings from missing context)
-- [ ] **TMPL-02**: Generated SQL migrations are syntactically valid PostgreSQL
-- [ ] **TMPL-03**: SQL migrations are idempotent (IF NOT EXISTS, DROP POLICY IF EXISTS guards)
-- [ ] **TMPL-04**: All conditional template branches render correctly (billing on/off, usage vs subscription billing model, different role counts, different provider combinations)
+- [x] **TMPL-01**: All Handlebars template variables resolve to non-empty values (no silent empty strings from missing context)
+- [x] **TMPL-02**: Generated SQL migrations are syntactically valid PostgreSQL
+- [x] **TMPL-03**: SQL migrations are idempotent (IF NOT EXISTS, DROP POLICY IF EXISTS guards)
+- [x] **TMPL-04**: All conditional template branches render correctly (billing on/off, usage vs subscription billing model, different role counts, different provider combinations)
 
 ### Testing
 
@@ -80,10 +80,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CLI-02 | Phase 2: CLI Hardening | Complete |
 | CLI-03 | Phase 2: CLI Hardening | Complete |
 | CLI-04 | Phase 2: CLI Hardening | Complete |
-| TMPL-01 | Phase 3: Template & SQL Correctness | Pending |
-| TMPL-02 | Phase 3: Template & SQL Correctness | Pending |
-| TMPL-03 | Phase 3: Template & SQL Correctness | Pending |
-| TMPL-04 | Phase 3: Template & SQL Correctness | Pending |
+| TMPL-01 | Phase 3: Template & SQL Correctness | Complete |
+| TMPL-02 | Phase 3: Template & SQL Correctness | Complete |
+| TMPL-03 | Phase 3: Template & SQL Correctness | Complete |
+| TMPL-04 | Phase 3: Template & SQL Correctness | Complete |
 | TEST-01 | Phase 4: Test Coverage | Pending |
 | TEST-02 | Phase 4: Test Coverage | Pending |
 | TEST-03 | Phase 4: Test Coverage | Pending |
