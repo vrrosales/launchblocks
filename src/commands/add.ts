@@ -1,6 +1,6 @@
 import path from "node:path";
 import { intro, outro, multiselect, isCancel, cancel } from "@clack/prompts";
-import { readConfig, VALID_PROVIDERS, VALID_PERMISSIONS } from "../generator/config-reader.js";
+import { readConfig, validateConfig, ConfigValidationError, VALID_PROVIDERS, VALID_PERMISSIONS } from "../generator/config-reader.js";
 import { ALL_PERMISSIONS, PERMISSION_LABELS } from "../interview/types.js";
 import { generateProject } from "../generator/index.js";
 import { parseCommaSeparated } from "../utils/validation.js";
@@ -126,6 +126,17 @@ export async function addRoleCommand(
       config.llm_access_roles.push(name);
     }
 
+    // Validate the mutated config before generation (CFG-03)
+    try {
+      validateConfig(config);
+    } catch (err) {
+      if (err instanceof ConfigValidationError) {
+        logger.error(err.message);
+        process.exit(1);
+      }
+      throw err;
+    }
+
     // Regenerate project files
     logger.step("Regenerating project files...");
 
@@ -188,6 +199,17 @@ export async function addProviderCommand(
 
     // Push to providers
     config.llm_providers.push(name);
+
+    // Validate the mutated config before generation (CFG-03)
+    try {
+      validateConfig(config);
+    } catch (err) {
+      if (err instanceof ConfigValidationError) {
+        logger.error(err.message);
+        process.exit(1);
+      }
+      throw err;
+    }
 
     // Regenerate project files
     logger.step("Regenerating project files...");
