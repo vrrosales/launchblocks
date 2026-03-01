@@ -6,7 +6,7 @@
 -- PROMPT TEMPLATES TABLE
 -- ============================================================
 
-CREATE TABLE public.prompt_templates (
+CREATE TABLE IF NOT EXISTS public.prompt_templates (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   slug text NOT NULL UNIQUE,
   name text NOT NULL,
@@ -29,6 +29,7 @@ CREATE TABLE public.prompt_templates (
 ALTER TABLE public.prompt_templates ENABLE ROW LEVEL SECURITY;
 
 -- All authenticated approved users can read active templates
+DROP POLICY IF EXISTS "prompts_select_authenticated" ON public.prompt_templates;
 CREATE POLICY "prompts_select_authenticated" ON public.prompt_templates
   FOR SELECT TO authenticated
   USING (
@@ -40,11 +41,13 @@ CREATE POLICY "prompts_select_authenticated" ON public.prompt_templates
   );
 
 -- Users with manage_prompts permission can read all templates (including inactive)
+DROP POLICY IF EXISTS "prompts_select_admin" ON public.prompt_templates;
 CREATE POLICY "prompts_select_admin" ON public.prompt_templates
   FOR SELECT TO authenticated
   USING (public.has_permission(auth.uid(), 'manage_prompts'));
 
 -- Users with manage_prompts permission can insert/update/delete
+DROP POLICY IF EXISTS "prompts_modify_admin" ON public.prompt_templates;
 CREATE POLICY "prompts_modify_admin" ON public.prompt_templates
   FOR ALL TO authenticated
   USING (public.has_permission(auth.uid(), 'manage_prompts'));
@@ -53,11 +56,12 @@ CREATE POLICY "prompts_modify_admin" ON public.prompt_templates
 -- INDEXES
 -- ============================================================
 
-CREATE INDEX idx_prompt_templates_slug ON public.prompt_templates(slug);
-CREATE INDEX idx_prompt_templates_provider ON public.prompt_templates(provider);
-CREATE INDEX idx_prompt_templates_active ON public.prompt_templates(is_active);
+CREATE INDEX IF NOT EXISTS idx_prompt_templates_slug ON public.prompt_templates(slug);
+CREATE INDEX IF NOT EXISTS idx_prompt_templates_provider ON public.prompt_templates(provider);
+CREATE INDEX IF NOT EXISTS idx_prompt_templates_active ON public.prompt_templates(is_active);
 
 -- Updated-at trigger
+DROP TRIGGER IF EXISTS prompt_templates_updated_at ON public.prompt_templates;
 CREATE TRIGGER prompt_templates_updated_at
   BEFORE UPDATE ON public.prompt_templates
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();

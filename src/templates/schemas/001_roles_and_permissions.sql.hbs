@@ -6,7 +6,7 @@
 -- ROLES TABLE
 -- ============================================================
 
-CREATE TABLE public.roles (
+CREATE TABLE IF NOT EXISTS public.roles (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name text NOT NULL UNIQUE,
   display_name text NOT NULL,
@@ -22,10 +22,12 @@ CREATE TABLE public.roles (
 ALTER TABLE public.roles ENABLE ROW LEVEL SECURITY;
 
 -- All authenticated users can read roles
+DROP POLICY IF EXISTS "roles_select_authenticated" ON public.roles;
 CREATE POLICY "roles_select_authenticated" ON public.roles
   FOR SELECT TO authenticated USING (true);
 
 -- Only owner role can modify roles
+DROP POLICY IF EXISTS "roles_modify_owner" ON public.roles;
 CREATE POLICY "roles_modify_owner" ON public.roles
   FOR ALL TO authenticated
   USING (
@@ -40,7 +42,7 @@ CREATE POLICY "roles_modify_owner" ON public.roles
 -- ROLE PERMISSIONS TABLE
 -- ============================================================
 
-CREATE TABLE public.role_permissions (
+CREATE TABLE IF NOT EXISTS public.role_permissions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   role_id uuid NOT NULL REFERENCES public.roles(id) ON DELETE CASCADE,
   permission text NOT NULL CHECK (permission IN (
@@ -54,10 +56,12 @@ CREATE TABLE public.role_permissions (
 ALTER TABLE public.role_permissions ENABLE ROW LEVEL SECURITY;
 
 -- All authenticated users can read permissions
+DROP POLICY IF EXISTS "role_permissions_select_authenticated" ON public.role_permissions;
 CREATE POLICY "role_permissions_select_authenticated" ON public.role_permissions
   FOR SELECT TO authenticated USING (true);
 
 -- Only owner role can modify permissions
+DROP POLICY IF EXISTS "role_permissions_modify_owner" ON public.role_permissions;
 CREATE POLICY "role_permissions_modify_owner" ON public.role_permissions
   FOR ALL TO authenticated
   USING (
@@ -74,7 +78,8 @@ CREATE POLICY "role_permissions_modify_owner" ON public.role_permissions
 
 {{#each roles}}
 INSERT INTO public.roles (name, display_name, is_owner_role, is_default_role, is_system, sort_order)
-VALUES ('{{this.name}}', '{{this.display_name}}', {{this.is_owner}}, {{this.is_default}}, true, {{@index}});
+VALUES ('{{this.name}}', '{{this.display_name}}', {{this.is_owner}}, {{this.is_default}}, true, {{@index}})
+ON CONFLICT (name) DO NOTHING;
 {{/each}}
 
 -- ============================================================
@@ -86,7 +91,8 @@ INSERT INTO public.role_permissions (role_id, permission)
 VALUES (
   (SELECT id FROM public.roles WHERE name = '{{this.role}}'),
   '{{this.permission}}'
-);
+)
+ON CONFLICT (role_id, permission) DO NOTHING;
 {{/each}}
 
 -- ============================================================
@@ -136,6 +142,7 @@ BEGIN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS roles_updated_at ON public.roles;
 CREATE TRIGGER roles_updated_at
   BEFORE UPDATE ON public.roles
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
