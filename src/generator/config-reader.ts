@@ -1,8 +1,9 @@
 import fs from "fs-extra";
 import YAML from "yaml";
 import type { LaunchblocksConfig } from "./config-writer.js";
+import type { AiTool } from "../interview/types.js";
 
-const VALID_AI_TOOLS = ["claude", "cursor", "codex", "gemini", "all"];
+const VALID_AI_TOOLS: string[] = ["claude", "cursor", "codex", "gemini", "all"];
 const VALID_BILLING_MODELS = ["subscription", "usage", "both"];
 export const VALID_PROVIDERS = [
   "openai",
@@ -237,7 +238,7 @@ export function validateConfig(raw: unknown): LaunchblocksConfig {
     admin_roles: obj.admin_roles as string[],
     llm_access_roles: obj.llm_access_roles as string[],
     llm_providers: obj.llm_providers as string[],
-    ai_tool: obj.ai_tool as string,
+    ai_tool: obj.ai_tool as AiTool,
     include_billing: includeBillingValue,
     billing_model: billingModelValue as "subscription" | "usage" | "both" | undefined,
   };

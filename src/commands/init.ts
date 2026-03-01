@@ -15,15 +15,15 @@ import {
 } from "../interview/types.js";
 import { buildConfig } from "../generator/config-writer.js";
 import { readConfig } from "../generator/config-reader.js";
-import { generateProject, type DryRunFile } from "../generator/index.js";
+import { generateProject } from "../generator/index.js";
 import { runSetup } from "../setup/runner.js";
 import { logger } from "../utils/logger.js";
 import { parseCommaSeparated } from "../utils/validation.js";
 import { toDisplayName } from "../utils/slug.js";
 
-const VALID_AI_TOOLS = ["claude", "cursor", "codex", "gemini", "all"];
-const VALID_BILLING_MODELS = ["subscription", "usage", "both"];
-const VALID_PROVIDERS = [
+const VALID_AI_TOOLS: string[] = ["claude", "cursor", "codex", "gemini", "all"];
+const VALID_BILLING_MODELS: string[] = ["subscription", "usage", "both"];
+const VALID_PROVIDERS: string[] = [
   "openai",
   "anthropic",
   "google",
@@ -34,16 +34,24 @@ const VALID_PROVIDERS = [
   "groq",
 ];
 
+function isAiTool(value: string): value is AiTool {
+  return VALID_AI_TOOLS.includes(value);
+}
+
+function isBillingModel(value: string): value is BillingModel {
+  return VALID_BILLING_MODELS.includes(value);
+}
+
 function buildAnswersFromFlags(opts: CLIOptions): Partial<InterviewAnswers> {
   const partial: Partial<InterviewAnswers> = {};
 
   if (opts.aiTool) {
-    if (!VALID_AI_TOOLS.includes(opts.aiTool)) {
+    if (!isAiTool(opts.aiTool)) {
       throw new Error(
         `Invalid --ai-tool "${opts.aiTool}". Must be one of: ${VALID_AI_TOOLS.join(", ")}`
       );
     }
-    partial.aiTool = opts.aiTool as AiTool;
+    partial.aiTool = opts.aiTool;
   }
 
   if (opts.appName) {
@@ -121,12 +129,12 @@ function buildAnswersFromFlags(opts: CLIOptions): Partial<InterviewAnswers> {
   if (opts.includeBilling) {
     partial.includeBilling = true;
     if (opts.billingModel) {
-      if (!VALID_BILLING_MODELS.includes(opts.billingModel)) {
+      if (!isBillingModel(opts.billingModel)) {
         throw new Error(
           `Invalid --billing-model "${opts.billingModel}". Must be one of: ${VALID_BILLING_MODELS.join(", ")}`
         );
       }
-      partial.billingModel = opts.billingModel as BillingModel;
+      partial.billingModel = opts.billingModel;
     } else {
       partial.billingModel = "subscription";
     }
@@ -155,21 +163,21 @@ async function generateFromConfig(
     const preview = await generateProject(process.cwd(), config, {
       dryRun: true,
     });
-    logger.dryRunSummary(preview as DryRunFile[]);
+    logger.dryRunSummary(preview);
     return;
   }
 
-  const createdFiles = (await generateProject(
+  const createdFiles = await generateProject(
     process.cwd(),
     config
-  )) as string[];
+  );
 
   let setupResult = null;
   if (!opts.skipMcp) {
-    setupResult = await runSetup(config.ai_tool as AiTool);
+    setupResult = await runSetup(config.ai_tool);
   }
 
-  logger.summary(createdFiles, setupResult, config.ai_tool as AiTool, config.include_billing);
+  logger.summary(createdFiles, setupResult, config.ai_tool, config.include_billing);
 }
 
 export async function initCommand(opts: CLIOptions): Promise<void> {
@@ -249,15 +257,15 @@ export async function initCommand(opts: CLIOptions): Promise<void> {
       const preview = await generateProject(process.cwd(), config, {
         dryRun: true,
       });
-      logger.dryRunSummary(preview as DryRunFile[]);
+      logger.dryRunSummary(preview);
       return;
     }
 
     // Generate all files
-    const createdFiles = (await generateProject(
+    const createdFiles = await generateProject(
       process.cwd(),
       config
-    )) as string[];
+    );
 
     // MCP Server Setup
     let setupResult = null;

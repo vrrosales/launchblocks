@@ -21,6 +21,16 @@ export interface GenerateOptions {
   scope?: GenerateScope[];
 }
 
+export function generateProject(
+  targetDir: string,
+  config: LaunchblocksConfig,
+  options: GenerateOptions & { dryRun: true }
+): Promise<DryRunFile[]>;
+export function generateProject(
+  targetDir: string,
+  config: LaunchblocksConfig,
+  options?: GenerateOptions
+): Promise<string[]>;
 export async function generateProject(
   targetDir: string,
   config: LaunchblocksConfig,

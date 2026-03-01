@@ -2,6 +2,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import Handlebars from "handlebars";
 import type { LaunchblocksConfig } from "./config-writer.js";
+import type { AiTool } from "../interview/types.js";
 
 export interface ProviderDisplay {
   id: string;
@@ -44,7 +45,7 @@ export interface TemplateContext {
   llm_access_roles_joined: string;
   llm_providers: string[];
   providers_display: ProviderDisplay[];
-  ai_tool: string;
+  ai_tool: AiTool;
   permissions_flat: PermissionFlat[];
   role_permission_summary: RolePermissionSummary[];
   has_multiple_providers: boolean;

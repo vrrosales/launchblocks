@@ -2,7 +2,7 @@ import path from "node:path";
 import { intro, outro, multiselect, isCancel, cancel } from "@clack/prompts";
 import { readConfig, VALID_PROVIDERS, VALID_PERMISSIONS } from "../generator/config-reader.js";
 import { ALL_PERMISSIONS, PERMISSION_LABELS } from "../interview/types.js";
-import { generateProject, type DryRunFile } from "../generator/index.js";
+import { generateProject } from "../generator/index.js";
 import { parseCommaSeparated } from "../utils/validation.js";
 import { toDisplayName } from "../utils/slug.js";
 import { logger } from "../utils/logger.js";
@@ -82,7 +82,7 @@ export async function addRoleCommand(
         process.exit(0);
       }
 
-      permissions = selected as string[];
+      permissions = selected;
     }
 
     // Handle --owner flag
@@ -133,13 +133,13 @@ export async function addRoleCommand(
         dryRun: true,
         scope: [...REGEN_SCOPE],
       });
-      logger.dryRunSummary(preview as DryRunFile[]);
+      logger.dryRunSummary(preview);
       return;
     }
 
-    const updatedFiles = (await generateProject(process.cwd(), config, {
+    const updatedFiles = await generateProject(process.cwd(), config, {
       scope: [...REGEN_SCOPE],
-    })) as string[];
+    });
 
     logger.success(`Added role "${name}" with ${permissions.length} permissions.`);
     logger.info(`Updated ${updatedFiles.length} files.`);
@@ -193,13 +193,13 @@ export async function addProviderCommand(
         dryRun: true,
         scope: [...REGEN_SCOPE],
       });
-      logger.dryRunSummary(preview as DryRunFile[]);
+      logger.dryRunSummary(preview);
       return;
     }
 
-    const updatedFiles = (await generateProject(process.cwd(), config, {
+    const updatedFiles = await generateProject(process.cwd(), config, {
       scope: [...REGEN_SCOPE],
-    })) as string[];
+    });
 
     logger.success(`Added provider "${name}".`);
     logger.info(`Updated ${updatedFiles.length} files.`);

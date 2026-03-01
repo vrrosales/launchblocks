@@ -1,7 +1,7 @@
 import path from "node:path";
 import fs from "fs-extra";
 import YAML from "yaml";
-import type { InterviewAnswers } from "../interview/types.js";
+import type { AiTool, InterviewAnswers } from "../interview/types.js";
 
 export interface LaunchblocksConfig {
   app_name: string;
@@ -19,7 +19,7 @@ export interface LaunchblocksConfig {
   admin_roles: string[];
   llm_access_roles: string[];
   llm_providers: string[];
-  ai_tool: string;
+  ai_tool: AiTool;
   include_billing: boolean;
   billing_model?: "subscription" | "usage" | "both";
 }
