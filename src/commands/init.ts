@@ -91,8 +91,8 @@ function buildAnswersFromFlags(opts: CLIOptions): Partial<InterviewAnswers> {
     partial.ownerRole = ownerRole;
     partial.defaultRole = defaultRole;
 
-    // Infer admin roles: owner + roles with admin-ish permissions
-    partial.adminRoles = [ownerRole];
+    // Infer admin roles: owner + roles whose name contains "admin"
+    partial.adminRoles = [ownerRole, ...roleNames.filter(r => r !== ownerRole && r.includes("admin"))];
 
     // Infer LLM access: all roles by default
     partial.llmAccessRoles = roleNames;
