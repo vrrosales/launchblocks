@@ -59,11 +59,11 @@ Plans:
   2. Every generated SQL migration file parses as syntactically valid PostgreSQL (verified by a parser, not just eyeballing)
   3. SQL migrations include idempotency guards (IF NOT EXISTS, DROP POLICY IF EXISTS) so re-running them does not produce "already exists" errors
   4. Generating output with billing enabled for each billing model (usage, subscription, both) and with billing disabled produces correct conditional output -- no billing artifacts when disabled, correct model-specific tables when enabled
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 03-01: TBD
-- [ ] 03-02: TBD
+- [ ] 03-01-PLAN.md -- Add idempotency guards to all 5 SQL migration templates
+- [ ] 03-02-PLAN.md -- Build template validation harness with libpg-query SQL parsing and multi-config coverage
 
 ### Phase 4: Test Coverage
 **Goal**: Automated tests prove the CLI produces correct output for all supported configurations and catch regressions when code changes
@@ -88,6 +88,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation Hardening | 2/2 | Complete | 2026-03-01 |
-| 2. CLI Hardening | 0/2 | Planned | - |
-| 3. Template & SQL Correctness | 0/0 | Not started | - |
+| 2. CLI Hardening | 2/2 | Complete | 2026-03-01 |
+| 3. Template & SQL Correctness | 0/2 | Planned | - |
 | 4. Test Coverage | 0/0 | Not started | - |
