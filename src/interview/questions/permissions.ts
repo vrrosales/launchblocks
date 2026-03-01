@@ -4,6 +4,7 @@ import {
   PERMISSION_LABELS,
   type RoleConfig,
 } from "../types.js";
+import { CancellationError } from "../../utils/errors.js";
 
 export async function askPermissions(roles: RoleConfig[]): Promise<void> {
   for (const role of roles) {
@@ -26,7 +27,7 @@ export async function askPermissions(roles: RoleConfig[]): Promise<void> {
 
     if (isCancel(perms)) {
       cancel("Operation cancelled.");
-      process.exit(0);
+      throw new CancellationError();
     }
 
     role.permissions = perms;

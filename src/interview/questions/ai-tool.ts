@@ -1,5 +1,6 @@
 import { select, isCancel, cancel } from "@clack/prompts";
 import type { AiTool } from "../types.js";
+import { CancellationError } from "../../utils/errors.js";
 
 export async function askAiTool(): Promise<AiTool> {
   const aiTool = await select({
@@ -16,7 +17,7 @@ export async function askAiTool(): Promise<AiTool> {
 
   if (isCancel(aiTool)) {
     cancel("Operation cancelled.");
-    process.exit(0);
+    throw new CancellationError();
   }
 
   return aiTool;

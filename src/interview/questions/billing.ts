@@ -1,5 +1,6 @@
 import { select, isCancel, cancel } from "@clack/prompts";
 import type { BillingModel } from "../types.js";
+import { CancellationError } from "../../utils/errors.js";
 
 export async function askBilling(): Promise<{
   includeBilling: boolean;
@@ -21,7 +22,7 @@ export async function askBilling(): Promise<{
 
   if (isCancel(includeBilling)) {
     cancel("Operation cancelled.");
-    process.exit(0);
+    throw new CancellationError();
   }
 
   if (!includeBilling) {
@@ -48,7 +49,7 @@ export async function askBilling(): Promise<{
 
   if (isCancel(billingModel)) {
     cancel("Operation cancelled.");
-    process.exit(0);
+    throw new CancellationError();
   }
 
   return { includeBilling: true, billingModel };

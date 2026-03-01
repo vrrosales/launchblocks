@@ -1,4 +1,5 @@
 import { multiselect, isCancel, cancel } from "@clack/prompts";
+import { CancellationError } from "../../utils/errors.js";
 
 export async function askProviders(): Promise<string[]> {
   const providers = await multiselect({
@@ -18,7 +19,7 @@ export async function askProviders(): Promise<string[]> {
 
   if (isCancel(providers)) {
     cancel("Operation cancelled.");
-    process.exit(0);
+    throw new CancellationError();
   }
 
   return providers;

@@ -1,5 +1,6 @@
 import { text, isCancel, cancel } from "@clack/prompts";
 import { validateAppName } from "../../utils/validation.js";
+import { CancellationError } from "../../utils/errors.js";
 
 export async function askAppInfo(): Promise<string> {
   const appName = await text({
@@ -14,7 +15,7 @@ export async function askAppInfo(): Promise<string> {
 
   if (isCancel(appName)) {
     cancel("Operation cancelled.");
-    process.exit(0);
+    throw new CancellationError();
   }
 
   return appName.trim();

@@ -5,6 +5,7 @@ import {
   cancel,
 } from "@clack/prompts";
 import type { RoleConfig } from "../types.js";
+import { CancellationError } from "../../utils/errors.js";
 
 export async function askAdminAccess(
   roles: RoleConfig[]
@@ -38,7 +39,7 @@ export async function askAdminAccess(
 
   if (isCancel(confirmed)) {
     cancel("Operation cancelled.");
-    process.exit(0);
+    throw new CancellationError();
   }
 
   if (confirmed) return inferred;
@@ -54,7 +55,7 @@ export async function askAdminAccess(
 
   if (isCancel(adminRoles)) {
     cancel("Operation cancelled.");
-    process.exit(0);
+    throw new CancellationError();
   }
 
   return adminRoles;

@@ -1,5 +1,6 @@
 import { select, multiselect, isCancel, cancel } from "@clack/prompts";
 import type { RoleConfig } from "../types.js";
+import { CancellationError } from "../../utils/errors.js";
 
 export async function askLlmAccess(roles: RoleConfig[]): Promise<string[]> {
   const llmChoice = await select({
@@ -12,7 +13,7 @@ export async function askLlmAccess(roles: RoleConfig[]): Promise<string[]> {
 
   if (isCancel(llmChoice)) {
     cancel("Operation cancelled.");
-    process.exit(0);
+    throw new CancellationError();
   }
 
   if (llmChoice === "all") {
@@ -30,7 +31,7 @@ export async function askLlmAccess(roles: RoleConfig[]): Promise<string[]> {
 
   if (isCancel(llmRoles)) {
     cancel("Operation cancelled.");
-    process.exit(0);
+    throw new CancellationError();
   }
 
   return llmRoles;

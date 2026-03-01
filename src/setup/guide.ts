@@ -2,6 +2,7 @@ import { confirm, select, isCancel, cancel, log } from "@clack/prompts";
 import { logger } from "../utils/logger.js";
 import { installMcpServer, ensureGitignore } from "./install.js";
 import type { AiTool } from "../interview/types.js";
+import { CancellationError } from "../utils/errors.js";
 
 const SERVICE_INFO: Record<
   string,
@@ -42,7 +43,7 @@ export async function guideService(
 
   if (isCancel(hasAccount)) {
     cancel("Operation cancelled.");
-    process.exit(0);
+    throw new CancellationError();
   }
 
   if (!hasAccount) {
@@ -57,7 +58,7 @@ export async function guideService(
 
     if (isCancel(created)) {
       cancel("Operation cancelled.");
-      process.exit(0);
+      throw new CancellationError();
     }
 
     if (!created) {
@@ -98,7 +99,7 @@ export async function guideService(
 
   if (isCancel(scope)) {
     cancel("Operation cancelled.");
-    process.exit(0);
+    throw new CancellationError();
   }
 
   await installMcpServer(name, scope, aiTool);

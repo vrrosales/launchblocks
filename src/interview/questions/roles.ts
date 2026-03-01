@@ -6,6 +6,7 @@ import {
 } from "../types.js";
 import { validateRoles, parseCommaSeparated } from "../../utils/validation.js";
 import { toDisplayName } from "../../utils/slug.js";
+import { CancellationError } from "../../utils/errors.js";
 
 export async function askRoles(): Promise<{
   roles: RoleConfig[];
@@ -26,7 +27,7 @@ export async function askRoles(): Promise<{
 
   if (isCancel(roleChoice)) {
     cancel("Operation cancelled.");
-    process.exit(0);
+    throw new CancellationError();
   }
 
   if (roleChoice === "defaults") {
@@ -48,7 +49,7 @@ export async function askRoles(): Promise<{
 
   if (isCancel(roleInput)) {
     cancel("Operation cancelled.");
-    process.exit(0);
+    throw new CancellationError();
   }
 
   const roleNames = parseCommaSeparated(roleInput);
@@ -60,7 +61,7 @@ export async function askRoles(): Promise<{
 
   if (isCancel(ownerRole)) {
     cancel("Operation cancelled.");
-    process.exit(0);
+    throw new CancellationError();
   }
 
   const defaultRole = await select({
@@ -70,7 +71,7 @@ export async function askRoles(): Promise<{
 
   if (isCancel(defaultRole)) {
     cancel("Operation cancelled.");
-    process.exit(0);
+    throw new CancellationError();
   }
 
   // Build RoleConfig array — owner gets all perms, others need to be configured later

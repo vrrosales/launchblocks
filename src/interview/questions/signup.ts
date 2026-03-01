@@ -1,4 +1,5 @@
 import { select, isCancel, cancel } from "@clack/prompts";
+import { CancellationError } from "../../utils/errors.js";
 
 export async function askSignupApproval(): Promise<boolean> {
   const requireApproval = await select({
@@ -15,7 +16,7 @@ export async function askSignupApproval(): Promise<boolean> {
 
   if (isCancel(requireApproval)) {
     cancel("Operation cancelled.");
-    process.exit(0);
+    throw new CancellationError();
   }
 
   return requireApproval;
