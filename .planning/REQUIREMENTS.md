@@ -11,7 +11,7 @@ Requirements for this quality audit. Each maps to roadmap phases.
 
 - [x] **CFG-01**: Config validation collects and reports all errors at once instead of failing on the first error
 - [x] **CFG-02**: Cross-field validation enforces consistency (owner role exists in roles list, admin roles are valid role names, LLM access roles are valid)
-- [ ] **CFG-03**: `add role` and `add provider` commands re-validate the mutated config before passing to the generator
+- [x] **CFG-03**: `add role` and `add provider` commands re-validate the mutated config before passing to the generator
 
 ### Type Safety
 
@@ -20,10 +20,10 @@ Requirements for this quality audit. Each maps to roadmap phases.
 
 ### CLI Hardening
 
-- [ ] **CLI-01**: All `process.exit(0)` calls in interview questions and setup guide replaced with CancellationError pattern for graceful shutdown
-- [ ] **CLI-02**: `--defaults` flag combined with individual flags (`--roles`, `--providers`, etc.) produces correct merged results
-- [ ] **CLI-03**: `add role` scoped regeneration produces correct output (config, context, specs, SQL all updated consistently)
-- [ ] **CLI-04**: `add provider` scoped regeneration produces correct output
+- [x] **CLI-01**: All `process.exit(0)` calls in interview questions and setup guide replaced with CancellationError pattern for graceful shutdown
+- [x] **CLI-02**: `--defaults` flag combined with individual flags (`--roles`, `--providers`, etc.) produces correct merged results
+- [x] **CLI-03**: `add role` scoped regeneration produces correct output (config, context, specs, SQL all updated consistently)
+- [x] **CLI-04**: `add provider` scoped regeneration produces correct output
 
 ### Template & SQL Correctness
 
@@ -73,13 +73,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | CFG-01 | Phase 1: Foundation Hardening | Complete |
 | CFG-02 | Phase 1: Foundation Hardening | Complete |
-| CFG-03 | Phase 2: CLI Hardening | Pending |
+| CFG-03 | Phase 2: CLI Hardening | Complete |
 | TYPE-01 | Phase 1: Foundation Hardening | Complete |
 | TYPE-02 | Phase 1: Foundation Hardening | Complete |
-| CLI-01 | Phase 2: CLI Hardening | Pending |
-| CLI-02 | Phase 2: CLI Hardening | Pending |
-| CLI-03 | Phase 2: CLI Hardening | Pending |
-| CLI-04 | Phase 2: CLI Hardening | Pending |
+| CLI-01 | Phase 2: CLI Hardening | Complete |
+| CLI-02 | Phase 2: CLI Hardening | Complete |
+| CLI-03 | Phase 2: CLI Hardening | Complete |
+| CLI-04 | Phase 2: CLI Hardening | Complete |
 | TMPL-01 | Phase 3: Template & SQL Correctness | Pending |
 | TMPL-02 | Phase 3: Template & SQL Correctness | Pending |
 | TMPL-03 | Phase 3: Template & SQL Correctness | Pending |
